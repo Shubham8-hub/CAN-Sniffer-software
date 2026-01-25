@@ -1,0 +1,7 @@
+../Core/App/process.c:26:6:process_init	32	static,ignoring_inline_asm
+../Core/App/process.c:47:6:HeartbeatTask	16	static
+../Core/App/process.c:58:6:UsbRxTask	24	static
+../Core/App/process.c:130:6:UsbTxTask	32	static
+../Core/App/process.c:148:6:CAN_RxTask	48	static
+../Core/App/process.c:173:6:process_handle_can_tx	72	static
+../Core/App/process.c:194:17:encode_dlc	16	static

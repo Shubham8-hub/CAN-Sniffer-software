@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Delete resource &apos;002_SNIFF_CODE_CUSTOMPCB/Core/Protocol/command.h&apos;" deleteContents="false" description="Delete resource &apos;002_SNIFF_CODE_CUSTOMPCB/Core/Protocol/command.h&apos;" element1="/002_SNIFF_CODE_CUSTOMPCB/Core/Protocol/command.h" flags="7" id="org.eclipse.ltk.core.refactoring.delete.resources" resources="1" stamp="1766328981757"/>
+</session>
