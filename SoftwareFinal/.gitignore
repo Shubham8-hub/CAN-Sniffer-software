@@ -1,0 +1,8 @@
+# Pycharm file
+.idea/
+
+#VS code file
+.vscode/
+
+# Virtual Environment/
+myreq/
