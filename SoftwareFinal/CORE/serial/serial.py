@@ -96,6 +96,12 @@ class SerialManager(QObject):
                         "speed": speeds[i]
                     })
 
+                    print(
+                        f"Channel {i} :"
+                        f"Type ID = {t_str} ({t_str}),"
+                        f"Speed = {speeds[i]}"
+                    )
+
                 device_info = {
                     "serial_no": serial_no,
                     "fw": fw_vers,
