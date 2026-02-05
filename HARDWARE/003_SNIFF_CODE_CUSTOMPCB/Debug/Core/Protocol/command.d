@@ -50,7 +50,8 @@ Core/Protocol/command.o: ../Core/Protocol/command.c \
  ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_core.h \
  ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_ioreq.h \
  ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_ctlreq.h \
- ../Core/Inc/main.h
+ ../Core/Inc/main.h \
+ F:/SNIFFER_CODING/HARDWARE/003_SNIFF_CODE_CUSTOMPCB/Core/CAN_Setting/can_setting.h
 ../Core/Protocol/command.h:
 F:/SNIFFER_CODING/HARDWARE/003_SNIFF_CODE_CUSTOMPCB/Core/App/process.h:
 F:/SNIFFER_CODING/HARDWARE/003_SNIFF_CODE_CUSTOMPCB/ThirdParty/FreeRTOS/include/FreeRTOS.h:
@@ -103,3 +104,4 @@ F:/SNIFFER_CODING/HARDWARE/003_SNIFF_CODE_CUSTOMPCB/ThirdParty/FreeRTOS/include/
 ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_ioreq.h:
 ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_ctlreq.h:
 ../Core/Inc/main.h:
+F:/SNIFFER_CODING/HARDWARE/003_SNIFF_CODE_CUSTOMPCB/Core/CAN_Setting/can_setting.h:

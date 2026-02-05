@@ -18,6 +18,8 @@ typedef struct{
 	uint8_t data[8];
 }CANFrame_t;
 
+extern QueueHandle_t usbRxQueue;
+
 void process_init(void);
 
 void HeartbeatTask(void *argument);

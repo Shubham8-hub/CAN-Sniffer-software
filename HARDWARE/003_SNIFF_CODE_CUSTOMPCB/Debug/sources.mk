@@ -23,6 +23,7 @@ C_DEPS :=
 # Every subdirectory with source files must be described here
 SUBDIRS := \
 Core/App \
+Core/CAN_Setting \
 Core/Protocol \
 Core/Src \
 Core/Startup \

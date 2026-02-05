@@ -20,6 +20,7 @@ RM := rm -rf
 -include Core/Startup/subdir.mk
 -include Core/Src/subdir.mk
 -include Core/Protocol/subdir.mk
+-include Core/CAN_Setting/subdir.mk
 -include Core/App/subdir.mk
 -include objects.mk
 

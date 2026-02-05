@@ -27,6 +27,8 @@
 #include "queue.h"
 #include "stm32g4xx_hal_fdcan.h"
 #include "process.h"
+
+#include "can_setting.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -55,10 +57,10 @@ FDCAN_HandleTypeDef hfdcan3;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_FDCAN2_Init(void);
-static void MX_FDCAN3_Init(void);
+//static void MX_FDCAN2_Init(void);
+//static void MX_FDCAN3_Init(void);
 /* USER CODE BEGIN PFP */
-
+//CAN_Setting_Init();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -127,18 +129,20 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_FDCAN2_Init();
-  MX_FDCAN3_Init();
+//  MX_FDCAN2_Init();
+//  MX_FDCAN3_Init();
+
   MX_USB_Device_Init();
   /* USER CODE BEGIN 2 */
-  HAL_FDCAN_ActivateNotification(&hfdcan3,
-                                 FDCAN_IT_RX_FIFO0_NEW_MESSAGE,
-                                 0);
-
-  if (HAL_FDCAN_Start(&hfdcan3) != HAL_OK)
-  {
-      Error_Handler();
-  }
+//  HAL_FDCAN_ActivateNotification(&hfdcan3,
+//                                 FDCAN_IT_RX_FIFO0_NEW_MESSAGE,
+//                                 0);
+//
+//  if (HAL_FDCAN_Start(&hfdcan3) != HAL_OK)
+//  {
+//      Error_Handler();
+//  }
+  CAN_Setting_Init();
 
   process_init();
 
@@ -209,110 +213,110 @@ void SystemClock_Config(void)
   * @param None
   * @retval None
   */
-static void MX_FDCAN2_Init(void)
-{
-
-  /* USER CODE BEGIN FDCAN2_Init 0 */
-
-  /* USER CODE END FDCAN2_Init 0 */
-
-  /* USER CODE BEGIN FDCAN2_Init 1 */
-
-  /* USER CODE END FDCAN2_Init 1 */
-  hfdcan2.Instance = FDCAN2;
-  hfdcan2.Init.ClockDivider = FDCAN_CLOCK_DIV1;
-  hfdcan2.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
-  hfdcan2.Init.Mode = FDCAN_MODE_NORMAL;
-  hfdcan2.Init.AutoRetransmission = ENABLE;
-  hfdcan2.Init.TransmitPause = DISABLE;
-  hfdcan2.Init.ProtocolException = ENABLE;
-  hfdcan2.Init.NominalPrescaler = 10;
-  hfdcan2.Init.NominalSyncJumpWidth = 1;
-  hfdcan2.Init.NominalTimeSeg1 = 13;
-  hfdcan2.Init.NominalTimeSeg2 = 2;
-  hfdcan2.Init.DataPrescaler = 1;
-  hfdcan2.Init.DataSyncJumpWidth = 1;
-  hfdcan2.Init.DataTimeSeg1 = 1;
-  hfdcan2.Init.DataTimeSeg2 = 1;
-  hfdcan2.Init.StdFiltersNbr = 1;
-  hfdcan2.Init.ExtFiltersNbr = 0;
-  hfdcan2.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
-  if (HAL_FDCAN_Init(&hfdcan2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN FDCAN2_Init 2 */
-  FDCAN_FilterTypeDef sFilterConfig = {0};
-  sFilterConfig.IdType = FDCAN_STANDARD_ID;
-  sFilterConfig.FilterIndex = 0;
-  sFilterConfig.FilterType = FDCAN_FILTER_RANGE;
-  sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
-  sFilterConfig.FilterID1 = 0x000;
-  sFilterConfig.FilterID2 = 0x7FF;
-  HAL_FDCAN_ConfigFilter(&hfdcan2, &sFilterConfig);
-  HAL_FDCAN_ConfigGlobalFilter(&hfdcan2,
-                               FDCAN_REJECT,
-                               FDCAN_REJECT,
-                               FDCAN_FILTER_REMOTE,
-                               FDCAN_FILTER_REMOTE);
-  /* USER CODE END FDCAN2_Init 2 */
-
-}
+//static void MX_FDCAN2_Init(void)
+//{
+//
+//  /* USER CODE BEGIN FDCAN2_Init 0 */
+//
+//  /* USER CODE END FDCAN2_Init 0 */
+//
+//  /* USER CODE BEGIN FDCAN2_Init 1 */
+//
+//  /* USER CODE END FDCAN2_Init 1 */
+//  hfdcan2.Instance = FDCAN2;
+//  hfdcan2.Init.ClockDivider = FDCAN_CLOCK_DIV1;
+//  hfdcan2.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
+//  hfdcan2.Init.Mode = FDCAN_MODE_NORMAL;
+//  hfdcan2.Init.AutoRetransmission = ENABLE;
+//  hfdcan2.Init.TransmitPause = DISABLE;
+//  hfdcan2.Init.ProtocolException = ENABLE;
+//  hfdcan2.Init.NominalPrescaler = 10;
+//  hfdcan2.Init.NominalSyncJumpWidth = 1;
+//  hfdcan2.Init.NominalTimeSeg1 = 13;
+//  hfdcan2.Init.NominalTimeSeg2 = 2;
+//  hfdcan2.Init.DataPrescaler = 1;
+//  hfdcan2.Init.DataSyncJumpWidth = 1;
+//  hfdcan2.Init.DataTimeSeg1 = 1;
+//  hfdcan2.Init.DataTimeSeg2 = 1;
+//  hfdcan2.Init.StdFiltersNbr = 1;
+//  hfdcan2.Init.ExtFiltersNbr = 0;
+//  hfdcan2.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
+//  if (HAL_FDCAN_Init(&hfdcan2) != HAL_OK)
+//  {
+//    Error_Handler();
+//  }
+//  /* USER CODE BEGIN FDCAN2_Init 2 */
+//  FDCAN_FilterTypeDef sFilterConfig = {0};
+//  sFilterConfig.IdType = FDCAN_STANDARD_ID;
+//  sFilterConfig.FilterIndex = 0;
+//  sFilterConfig.FilterType = FDCAN_FILTER_RANGE;
+//  sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
+//  sFilterConfig.FilterID1 = 0x000;
+//  sFilterConfig.FilterID2 = 0x7FF;
+//  HAL_FDCAN_ConfigFilter(&hfdcan2, &sFilterConfig);
+//  HAL_FDCAN_ConfigGlobalFilter(&hfdcan2,
+//                               FDCAN_REJECT,
+//                               FDCAN_REJECT,
+//                               FDCAN_FILTER_REMOTE,
+//                               FDCAN_FILTER_REMOTE);
+//  /* USER CODE END FDCAN2_Init 2 */
+//
+//}
 
 /**
   * @brief FDCAN3 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_FDCAN3_Init(void)
-{
-
-  /* USER CODE BEGIN FDCAN3_Init 0 */
-
-  /* USER CODE END FDCAN3_Init 0 */
-
-  /* USER CODE BEGIN FDCAN3_Init 1 */
-
-  /* USER CODE END FDCAN3_Init 1 */
-  hfdcan3.Instance = FDCAN3;
-  hfdcan3.Init.ClockDivider = FDCAN_CLOCK_DIV1;
-  hfdcan3.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
-  hfdcan3.Init.Mode = FDCAN_MODE_NORMAL;
-  hfdcan3.Init.AutoRetransmission = ENABLE;
-  hfdcan3.Init.TransmitPause = DISABLE;
-  hfdcan3.Init.ProtocolException = ENABLE;
-  hfdcan3.Init.NominalPrescaler = 10;
-  hfdcan3.Init.NominalSyncJumpWidth = 1;
-  hfdcan3.Init.NominalTimeSeg1 = 13;
-  hfdcan3.Init.NominalTimeSeg2 = 2;
-  hfdcan3.Init.DataPrescaler = 1;
-  hfdcan3.Init.DataSyncJumpWidth = 1;
-  hfdcan3.Init.DataTimeSeg1 = 1;
-  hfdcan3.Init.DataTimeSeg2 = 1;
-  hfdcan3.Init.StdFiltersNbr = 1;
-  hfdcan3.Init.ExtFiltersNbr = 0;
-  hfdcan3.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
-  if (HAL_FDCAN_Init(&hfdcan3) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN FDCAN3_Init 2 */
-  FDCAN_FilterTypeDef sFilterConfig = {0};
-  sFilterConfig.IdType = FDCAN_STANDARD_ID;
-  sFilterConfig.FilterIndex = 0;
-  sFilterConfig.FilterType = FDCAN_FILTER_RANGE;
-  sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
-  sFilterConfig.FilterID1 = 0x000;
-  sFilterConfig.FilterID2 = 0x7FF;
-  HAL_FDCAN_ConfigFilter(&hfdcan3, &sFilterConfig);
-  HAL_FDCAN_ConfigGlobalFilter(&hfdcan3,
-                               FDCAN_REJECT,
-                               FDCAN_REJECT,
-                               FDCAN_FILTER_REMOTE,
-                               FDCAN_FILTER_REMOTE);
-  /* USER CODE END FDCAN3_Init 2 */
-
-}
+//static void MX_FDCAN3_Init(void)
+//{
+//
+//  /* USER CODE BEGIN FDCAN3_Init 0 */
+//
+//  /* USER CODE END FDCAN3_Init 0 */
+//
+//  /* USER CODE BEGIN FDCAN3_Init 1 */
+//
+//  /* USER CODE END FDCAN3_Init 1 */
+//  hfdcan3.Instance = FDCAN3;
+//  hfdcan3.Init.ClockDivider = FDCAN_CLOCK_DIV1;
+//  hfdcan3.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
+//  hfdcan3.Init.Mode = FDCAN_MODE_NORMAL;
+//  hfdcan3.Init.AutoRetransmission = ENABLE;
+//  hfdcan3.Init.TransmitPause = DISABLE;
+//  hfdcan3.Init.ProtocolException = ENABLE;
+//  hfdcan3.Init.NominalPrescaler = 10;
+//  hfdcan3.Init.NominalSyncJumpWidth = 1;
+//  hfdcan3.Init.NominalTimeSeg1 = 13;
+//  hfdcan3.Init.NominalTimeSeg2 = 2;
+//  hfdcan3.Init.DataPrescaler = 1;
+//  hfdcan3.Init.DataSyncJumpWidth = 1;
+//  hfdcan3.Init.DataTimeSeg1 = 1;
+//  hfdcan3.Init.DataTimeSeg2 = 1;
+//  hfdcan3.Init.StdFiltersNbr = 1;
+//  hfdcan3.Init.ExtFiltersNbr = 0;
+//  hfdcan3.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
+//  if (HAL_FDCAN_Init(&hfdcan3) != HAL_OK)
+//  {
+//    Error_Handler();
+//  }
+//  /* USER CODE BEGIN FDCAN3_Init 2 */
+//  FDCAN_FilterTypeDef sFilterConfig = {0};
+//  sFilterConfig.IdType = FDCAN_STANDARD_ID;
+//  sFilterConfig.FilterIndex = 0;
+//  sFilterConfig.FilterType = FDCAN_FILTER_RANGE;
+//  sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
+//  sFilterConfig.FilterID1 = 0x000;
+//  sFilterConfig.FilterID2 = 0x7FF;
+//  HAL_FDCAN_ConfigFilter(&hfdcan3, &sFilterConfig);
+//  HAL_FDCAN_ConfigGlobalFilter(&hfdcan3,
+//                               FDCAN_REJECT,
+//                               FDCAN_REJECT,
+//                               FDCAN_FILTER_REMOTE,
+//                               FDCAN_FILTER_REMOTE);
+//  /* USER CODE END FDCAN3_Init 2 */
+//
+//}
 
 /**
   * @brief GPIO Initialization Function

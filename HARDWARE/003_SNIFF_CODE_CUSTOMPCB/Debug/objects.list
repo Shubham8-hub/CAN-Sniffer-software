@@ -1,4 +1,5 @@
 "./Core/App/process.o"
+"./Core/CAN_Setting/can_setting.o"
 "./Core/Protocol/command.o"
 "./Core/Src/main.o"
 "./Core/Src/stm32g4xx_hal_msp.o"

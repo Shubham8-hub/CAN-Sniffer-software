@@ -1,0 +1,5 @@
+../Core/CAN_Setting/can_setting.c:39:28:get_timing_by_cmd	24	static
+../Core/CAN_Setting/can_setting.c:49:29:get_handle_by_index	16	static
+../Core/CAN_Setting/can_setting.c:79:6:CAN_Setting_Init	8	static
+../Core/CAN_Setting/can_setting.c:135:9:CAN_Set_Baudrate	24	static
+../Core/CAN_Setting/can_setting.c:197:10:CAN_Get_Baudrate	24	static

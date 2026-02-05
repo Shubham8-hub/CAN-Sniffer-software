@@ -20,6 +20,8 @@
 #define CMD_CAN_TX					0x50
 #define CMD_CAN_RX					0x51
 
+#define CMD_READ_BAUDRATE			0x32
+#define CMD_SET_BAUDRATE			0x33
 
 #define MAX_CAN_CHANNEL				4
 
@@ -30,6 +32,7 @@ typedef struct __attribute__((packed))
 	uint32_t no_of_CAN_Channel;
 	uint8_t CAN_type[MAX_CAN_CHANNEL];
 	uint32_t CAN_Channel_speed[MAX_CAN_CHANNEL];
+	uint32_t CAN_Channel_current_baud[MAX_CAN_CHANNEL];
 }device_info_t;
 
 void command_process(uint8_t cmd);
