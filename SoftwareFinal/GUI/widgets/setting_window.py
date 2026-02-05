@@ -10,12 +10,22 @@ class ChannelConfigBox(QGroupBox):
         super().__init__(f"Channel {ch_info['id']}")
         self.ch_id = ch_info['id']
 
-        # --- FIX: MULTIPLY BY 10 ---
-        # Hardware sends 800,000 but we need 8,000,000 for Mbps math
-        self.max_speed = int(ch_info['speed']) * 10
-
         self.serial_mgr = serial_mgr
+
+        # --- FIX: MULTIPLY BY 10 ---
+
+        self.max_speed = ch_info['max_speed']
+
+        self.current_speed = ch_info['current_speed']
+
+
+        self.lbl_current_val = QLabel("unknown") # place holder
+        self.lbl_current_val.setStyleSheet("color: #0a5fc7; font-weight: bold;")
+
         self.setup_ui(ch_info)
+
+        if self.serial_mgr:
+            self.serial_mgr.baud_read_response.connect(self.on_baud_read)
 
     def setup_ui(self, info):
         layout = QGridLayout(self)
@@ -50,8 +60,7 @@ class ChannelConfigBox(QGroupBox):
         layout.addWidget(self.combo_baud, 1, 1)
 
         layout.addWidget(QLabel("Current Baudrate :"), 1, 2)
-        # Display the real bps value (8 Mbps)
-        layout.addWidget(QLabel(f"{self.max_speed} bps"), 1, 3)
+        layout.addWidget(self.lbl_current_val, 1, 3)
 
         # Row 2: Buttons
         btn_set = QPushButton("Set Baudrate")
@@ -60,16 +69,45 @@ class ChannelConfigBox(QGroupBox):
 
         btn_read = QPushButton("Read Baudrate")
         btn_read.setStyleSheet("background-color: #0a5fc7; padding: 6px; font-weight: bold;")
+        btn_read.clicked.connect(self.read_baudrate)
 
         layout.addWidget(btn_set, 2, 0, 1, 2)
         layout.addWidget(btn_read, 2, 2, 1, 2)
 
+    def update_current_label(self, speed):
+        # Helper to format the text nicely
+        if speed >= 1000000:
+            txt = f"{speed / 1000000:.1f} MBPS"
+        elif speed > 0:
+            txt = f"{speed / 1000:.0f} KBPS"
+        else:
+            txt = "Unknown"
+        self.lbl_current_val.setText(txt)
+
     def apply_baudrate(self):
-        cmd = self.combo_baud.currentData()
+        cmd_baud_byte = self.combo_baud.currentData()
+        # Packet formed : [0x33, Channel, BaudCmd]
+        packet = bytes([Command.CMD_SET_BAUDRATE, self.ch_id, cmd_baud_byte])
+
         if self.serial_mgr:
-            # Send command byte to hardware
-            self.serial_mgr._send_command(cmd)
-            print(f"Set CH{self.ch_id} to Cmd {hex(cmd)}")
+            self.serial_mgr.write_data(packet)
+            print(f"Sending Set Baud: Cmd={cmd_baud_byte} for Ch={self.ch_id}")
+
+            # If autoread is needed to verify
+            # self.read_baudrate()
+
+    def read_baudrate(self):
+        if self.serial_mgr:
+            # --- Send 2 Bytes [READ_CMD, CH_ID] ---
+            packet = bytes([Command.CMD_READ_BAUDRATE, self.ch_id])
+            self.serial_mgr.write_data(packet)
+            print(f"Sending Read Baud: Ch={self.ch_id}")
+
+    def on_baud_read(self, ch_id, speed):
+        # Only update if the response is for THIS channel
+        if ch_id == self.ch_id:
+            self.update_current_label(speed)
+            print(f"UI Updated: Ch{ch_id} -> {speed}")
 
 
 class SettingWindow(QWidget):

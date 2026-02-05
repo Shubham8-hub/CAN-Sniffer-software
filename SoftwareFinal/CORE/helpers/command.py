@@ -5,9 +5,6 @@ class Command:
     CONNECT     =   0x30
     DISCONNECT  =   0x31
 
-
-
-
     # Command for response from device
     ACK         =   0x40
     NACK        =   0x41
@@ -34,3 +31,4 @@ class Command:
 
     #Command for reading the baudrate
     CMD_READ_BAUDRATE = 0x32
+    CMD_SET_BAUDRATE = 0x33

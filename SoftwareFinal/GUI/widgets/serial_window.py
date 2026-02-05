@@ -160,7 +160,7 @@ class SerialWindow(QWidget):
 
         channel_text = "Channel Details:\n"
         for ch in info['channels']:
-            channel_text += f"• CH{ch['id']}: {ch['type']} @ {ch['speed']} bps\n"
+            channel_text += f"• CH{ch['id']}: {ch['type']} @ {ch['max_speed']} bps\n"
 
         # USE THE MATCHING NAME HERE
         self.label_channels_summary.setText(channel_text)
