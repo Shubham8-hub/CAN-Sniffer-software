@@ -1,6 +1,5 @@
 from PySide6.QtWidgets import QTableView, QHeaderView
-from PySide6.QtGui import QStandardItemModel, QStandardItem
-from PySide6.QtCore import Qt
+from PySide6.QtGui import QStandardItemModel
 from .detachable_widget import DetachableWidget
 
 class TransmitWindow(DetachableWidget):
@@ -11,13 +10,10 @@ class TransmitWindow(DetachableWidget):
         self.table = QTableView()
         self.set_child(self.table)
 
+        # Simple Transmit UI Columns
         self.model = QStandardItemModel()
-        self.model.setHorizontalHeaderLabels(["ID", "DLC", "Data", "Mode"])
+        self.model.setHorizontalHeaderLabels(["ID (Hex)", "DLC", "Data (Hex)", "Cycle (ms)", "Count", "Status", "Action"])
         self.table.setModel(self.model)
 
         header = self.table.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.ResizeToContents)
-
-    def on_attach_request(self):
-        if self.parent_callback:
-            self.parent_callback(self)
+        header.setSectionResizeMode(QHeaderView.Stretch)

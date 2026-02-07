@@ -10,8 +10,8 @@ class Command:
     NACK        =   0x41
 
     # Command for Starting and stopping the snipping
-    START_SNIFF =   0x60
-    STOP_SNIFF  =   0x61
+    START_SNIFF =   0x51
+    STOP_SNIFF  =   0x52
 
     # Command for setting the baudrate
     BAUD_RATES = [

@@ -16,7 +16,7 @@ ICON_PATH = os.path.join(BASE_DIR, "..", "resources", "icons", "refresh.png")
 
 class SerialWindow(QWidget):
 
-    def __init__(self):
+    def __init__(self,serial_mgr):
         super().__init__()
 
         # base_path = os.path.dirname(os.path.abspath(__file__))
@@ -26,7 +26,8 @@ class SerialWindow(QWidget):
         self._setup_ui()
         self._populate_ports()
 
-        self.serial_mgr = SerialManager()
+        # self.serial_mgr = SerialManager()
+        self.serial_mgr = serial_mgr
         self.serial_mgr.connected.connect(self.on_connected)
         self.serial_mgr.error.connect(self.on_error)
         self.serial_mgr.busy.connect(self.on_busy)

@@ -23,6 +23,8 @@ class SerialManager(QObject):
         self._rx_buffer = bytearray()
         # self._tx_buffer = bytearray()
 
+        self.is_sniffing = False
+
         self.timeout_timer = QTimer()
         self.timeout_timer.setSingleShot(True)
         self.timeout_timer.timeout.connect(self._on_timeout)
@@ -64,7 +66,24 @@ class SerialManager(QObject):
     def _send_command(self, cmd):
         self.serial.write(bytes([cmd]))
 
+    def start_sniffing(self):
+        if self.serial.isOpen():
+            self.is_sniffing = True
+            # Send the Start Sniff Command (0x51)
+            self._send_command(Command.START_SNIFF)
+
+
+    def stop_sniffing(self):
+        if self.serial.isOpen():
+            # Send the Stop Sniff Command (0x52)
+            self._send_command(Command.STOP_SNIFF)
+            self.is_sniffing = False
+
     def _on_ready_read(self):
+
+        if self.is_sniffing:
+            return
+
         self._rx_buffer.extend(self.serial.readAll())
 
         # Check command type from first byte
@@ -79,16 +98,13 @@ class SerialManager(QObject):
         if cmd_type == Command.ACK:
             # Struct Size: 32+6+4 + 4 + 16 + 16 = 78 bytes.
             # Total Frame: 1 (ACK) + 78 = 79 bytes
-
             expected_size = 79
-
             # Expecting: ACK + ID + FW_MAJ + FW_MIN
             if len(self._rx_buffer) < expected_size:
                 return
 
             self.timeout_timer.stop()
             self.busy.emit(False)
-
             # response = self._rx_buffer[0]
 
         # if response == Command.ACK:
@@ -102,8 +118,8 @@ class SerialManager(QObject):
                 num_channel = unpacked[2]
 
                 type = unpacked[3:7]
-                max_speeds = unpacked[7:11]            # Max Capabilites
-                current_speeds = unpacked[11:15]  # Active Baudrates
+                max_speeds = unpacked[7:11]             # Max Capabilites
+                current_speeds = unpacked[11:15]        # Active Baudrates
 
                 # Map Type ID to String (match your C code logic)
                 type_map = {1: "Classic", 2: "CANFD"}
@@ -178,3 +194,7 @@ class SerialManager(QObject):
         self.error.emit("Timed out")
         if self.serial.isOpen():
             self.serial.close()
+
+    def send_bytes(self, data):
+        if self.serial.isOpen():
+            self.serial.write(data)

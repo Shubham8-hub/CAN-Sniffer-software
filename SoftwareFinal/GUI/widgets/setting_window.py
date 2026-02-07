@@ -118,6 +118,8 @@ class SettingWindow(QWidget):
         state.connection_changed.connect(self.refresh_ui)
         self.refresh_ui(state.is_connected)
 
+        # self.serial_mgr.connected.connect(self.on_connected)
+
     def setup_ui(self):
         self.layout = QVBoxLayout(self)
         self.stack = QStackedWidget()
