@@ -22,6 +22,9 @@ const char product_type[] = "ALL";
 static device_info_t dev_info;
 
 extern FDCAN_HandleTypeDef hfdcan3;
+extern FDCAN_HandleTypeDef hfdcan2;
+
+volatile uint8_t is_trace_running = 0;
 
 void update_device_info(void)
 {
@@ -133,6 +136,18 @@ void command_process(uint8_t cmd)
 				CDC_Transmit_FS(resp, 3);
 			}
 		}
+	}
+
+	// Starting the trace
+	else if (cmd == CMD_START_TRACE)
+	{
+		is_trace_running = 1;
+		// Next send the ack
+	}
+
+	else if (cmd == CMD_STOP_TRACE)
+	{
+		is_trace_running = 0;
 	}
 
 }

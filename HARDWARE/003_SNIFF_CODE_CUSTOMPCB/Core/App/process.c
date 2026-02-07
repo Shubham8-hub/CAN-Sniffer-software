@@ -89,27 +89,68 @@ void UsbTxTask(void *argument)
 }
 
 
+//void CAN_RxTask(void *argument)
+//{
+//    CANFrame_t frame;
+//    uint8_t resp[14];
+//
+//    resp[0] = CMD_CAN_RX; // CAN RX
+//
+//    for (;;)
+//    {
+//        if (xQueueReceive(canRxQueue, &frame, portMAX_DELAY) == pdPASS)
+//        {
+//            resp[1] = (frame.id      ) & 0xFF;
+//            resp[2] = (frame.id >> 8 ) & 0xFF;
+//            resp[3] = (frame.id >> 16) & 0xFF;
+//            resp[4] = (frame.id >> 24) & 0xFF;
+//            resp[5] = frame.dlc;
+//            memcpy(&resp[6], frame.data, 8);
+//
+//            xQueueSend(usbTxQueue, resp, 0);
+//        }
+//    }
+//}
+
 void CAN_RxTask(void *argument)
 {
     CANFrame_t frame;
-    uint8_t resp[14];
+    uint8_t usb_packet[16]; // Our 16-byte packet buffer
 
-    resp[0] = CMD_CAN_RX; // CAN RX
-
-    for (;;)
-    {
+        // Wait for data from the ISR/Callback
         if (xQueueReceive(canRxQueue, &frame, portMAX_DELAY) == pdPASS)
         {
-            resp[1] = (frame.id      ) & 0xFF;
-            resp[2] = (frame.id >> 8 ) & 0xFF;
-            resp[3] = (frame.id >> 16) & 0xFF;
-            resp[4] = (frame.id >> 24) & 0xFF;
-            resp[5] = frame.dlc;
-            memcpy(&resp[6], frame.data, 8);
+            // Only send to USB if Trace is Active
+            if (is_trace_running)
+            {
+                // 1. Header
+                usb_packet[0] = 0xAA;
 
-            xQueueSend(usbTxQueue, resp, 0);
+                // 2. Channel
+                usb_packet[1] = frame.channel;
+
+                // 3. CAN ID (Little Endian)
+                usb_packet[2] = (uint8_t)(frame.id & 0xFF);
+                usb_packet[3] = (uint8_t)((frame.id >> 8) & 0xFF);
+                usb_packet[4] = (uint8_t)((frame.id >> 16) & 0xFF);
+                usb_packet[5] = (uint8_t)((frame.id >> 24) & 0xFF);
+
+                // 4. DLC
+                usb_packet[6] = frame.dlc;
+
+                // 5. Data (8 Bytes) - Copy safe
+                memset(&usb_packet[7], 0, 8); // Clear buffer first
+                memcpy(&usb_packet[7], frame.data, (frame.dlc > 8) ? 8 : frame.dlc);
+
+                // 6. Footer
+                usb_packet[15] = 0xBB;
+
+                // 7. Send to USB Queue
+                // Note: Ensure your USB Task sends all 16 bytes!
+                CDC_Transmit_FS(usb_packet, 16);
+            }
         }
-    }
+
 }
 
 void process_handle_can_tx(void)

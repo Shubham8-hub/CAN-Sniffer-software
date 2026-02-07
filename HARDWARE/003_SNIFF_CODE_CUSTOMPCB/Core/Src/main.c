@@ -77,7 +77,16 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
         HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &rxHeader, rxData);
 
         frame.id = rxHeader.Identifier;
-
+        // --- NEW: Populate Channel based on Hardware Instance ---
+		if (hfdcan->Instance == FDCAN2)
+		{
+			frame.channel = 0; // Channel 0
+		}
+		else if (hfdcan->Instance == FDCAN3)
+		{
+			frame.channel = 1; // Channel 1
+		}
+		// -------------------------------------------------------
         // Decode DLC properly
         switch(rxHeader.DataLength) {
             case FDCAN_DLC_BYTES_0: frame.dlc = 0; break;

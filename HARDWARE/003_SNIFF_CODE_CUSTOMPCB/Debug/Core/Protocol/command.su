@@ -1,3 +1,3 @@
-../Core/Protocol/command.c:26:6:update_device_info	8	static
-../Core/Protocol/command.c:43:6:command_process	120	static
-../Core/Protocol/command.c:140:6:generate_serial_number	40	static
+../Core/Protocol/command.c:29:6:update_device_info	8	static
+../Core/Protocol/command.c:46:6:command_process	120	static
+../Core/Protocol/command.c:155:6:generate_serial_number	40	static

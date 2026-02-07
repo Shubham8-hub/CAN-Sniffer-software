@@ -16,9 +16,12 @@ typedef struct{
 	uint32_t id;
 	uint8_t dlc;
 	uint8_t data[8];
+	uint8_t channel;
 }CANFrame_t;
 
 extern QueueHandle_t usbRxQueue;
+
+extern volatile uint8_t is_trace_running;
 
 void process_init(void);
 

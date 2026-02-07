@@ -22,18 +22,18 @@ static uint8_t current_baud_ch1 = CMD_BAUD_500K;
  */
 static const CAN_Timing_t baud_table[] = {
     // Cmd,        		Speed,    	Presc, 	Seg1, 	Seg2, 	SJW
-    {CMD_BAUD_125K, 	125000,	   	128,   	13,   	2,   	1}, // Example placeholder
-    {CMD_BAUD_250K, 	250000,	   	64,    	13,   	2,   	1},
-    {CMD_BAUD_500K, 	500000,	   	32,    	13,   	2,   	1}, // Default
-    {CMD_BAUD_1M,   	1000000,	16,    	13,   	2,   	1},
-	{CMD_BAUD_2M,   	2000000, 	16,		13,		2,		1},
-    {CMD_BAUD_2_5M, 	2500000,	64,    	13,   	2,   	1},
-    {CMD_BAUD_3M, 		3000000,	32,    	13,   	2,   	1},
-    {CMD_BAUD_4M,   	4000000,	16,    	13,   	2,   	1},
-	{CMD_BAUD_5M,   	5000000, 	16,		13,		2,		1},
-    {CMD_BAUD_6M, 		6000000,	64,    	13,   	2,   	1},
-    {CMD_BAUD_7M, 		7000000,	32,    	13,   	2,   	1},
-    {CMD_BAUD_8M,   	8000000,	16,    	13,   	2,   	1}
+    {CMD_BAUD_125K, 	125000,	   	40,   	13,   	2,   	1},
+    {CMD_BAUD_250K, 	250000,	   	20,    	13,   	2,   	1},
+    {CMD_BAUD_500K, 	500000,	   	10,    	13,   	2,   	1}, // Default
+    {CMD_BAUD_1M,   	1000000,	5,    	13,   	2,   	1},
+	{CMD_BAUD_2M,   	2000000, 	4,		7,		2,		1},
+    {CMD_BAUD_2_5M, 	2500000,	4,    	5,   	2,   	1},
+    {CMD_BAUD_3M, 		3000000,	0,    	0,   	0,   	0},// unable to find
+    {CMD_BAUD_4M,   	4000000,	2,    	7,   	2,   	1},
+	{CMD_BAUD_5M,   	5000000, 	2,		5,		2,		1},
+    {CMD_BAUD_6M, 		6000000,	0,    	0,   	0,   	0}, // unable to find
+    {CMD_BAUD_7M, 		7000000,	0,    	0,   	0,   	0}, // unable to find
+    {CMD_BAUD_8M,   	8000000,	1,    	7,   	2,   	1}
 };
 
 static const CAN_Timing_t* get_timing_by_cmd(uint8_t cmd) {

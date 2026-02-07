@@ -303,9 +303,19 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
   uint8_t result = USBD_OK;
   /* USER CODE BEGIN 7 */
   USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData;
-  if (hcdc->TxState != 0){
-    return USBD_BUSY;
-  }
+
+  uint32_t timeout = 0;
+  while (hcdc->TxState != 0)
+	{
+		timeout++;
+		// simple delay loop or use HAL_Delay(1) if allowed here
+		if (timeout > 1000) {
+			return USBD_BUSY; // Give up if stuck
+		}
+	}
+//  if (hcdc->TxState != 0){
+//    return USBD_BUSY;
+//  }
   USBD_CDC_SetTxBuffer(&hUsbDeviceFS, Buf, Len);
   result = USBD_CDC_TransmitPacket(&hUsbDeviceFS);
   /* USER CODE END 7 */

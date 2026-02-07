@@ -2,6 +2,6 @@
 ../Core/App/process.c:47:6:HeartbeatTask	16	static
 ../Core/App/process.c:58:6:UsbRxTask	24	static
 ../Core/App/process.c:74:6:UsbTxTask	32	static
-../Core/App/process.c:92:6:CAN_RxTask	48	static
-../Core/App/process.c:115:6:process_handle_can_tx	72	static
-../Core/App/process.c:136:17:encode_dlc	16	static
+../Core/App/process.c:115:6:CAN_RxTask	48	static
+../Core/App/process.c:156:6:process_handle_can_tx	72	static
+../Core/App/process.c:177:17:encode_dlc	16	static

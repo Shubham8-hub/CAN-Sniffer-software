@@ -18,7 +18,8 @@
 #define RESP_NACK					0x41
 
 #define CMD_CAN_TX					0x50
-#define CMD_CAN_RX					0x51
+#define CMD_START_TRACE				0x51
+#define CMD_STOP_TRACE				0x52
 
 #define CMD_READ_BAUDRATE			0x32
 #define CMD_SET_BAUDRATE			0x33
@@ -35,7 +36,11 @@ typedef struct __attribute__((packed))
 	uint32_t CAN_Channel_current_baud[MAX_CAN_CHANNEL];
 }device_info_t;
 
+
+
+
 void command_process(uint8_t cmd);
 void generate_serial_number(char *serial_buffer, size_t buffer_size);
+
 
 #endif /* PROTOCOL_COMMAND_H_ */
