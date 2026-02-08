@@ -22,6 +22,7 @@ QueueHandle_t usbTxQueue;
 QueueHandle_t canRxQueue;
 
 static uint32_t encode_dlc(uint8_t dlc);
+static uint32_t raw_dlc_to_hal(uint8_t dlc);
 
 void process_init(void)
 {
@@ -157,25 +158,102 @@ void CAN_RxTask(void *argument)
 
 }
 
+//void process_handle_can_tx(void)
+//{
+//    uint8_t buf[13];
+//    for(int i=0;i<13;i++)
+//        xQueueReceive(usbRxQueue, &buf[i], portMAX_DELAY);
+//
+//    uint32_t canId = buf[0] | (buf[1]<<8) | (buf[2]<<16) | (buf[3]<<24);
+//    uint8_t dlc = buf[4];
+//
+//    FDCAN_TxHeaderTypeDef TxHeader = {
+//        .Identifier = canId,
+//        .IdType = FDCAN_STANDARD_ID,
+//        .TxFrameType = FDCAN_DATA_FRAME,
+//        .DataLength = encode_dlc(dlc),
+//        .FDFormat = FDCAN_CLASSIC_CAN,
+//        .BitRateSwitch = FDCAN_BRS_OFF
+//    };
+//
+//    HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan3, &TxHeader, &buf[5]);
+//}
+
 void process_handle_can_tx(void)
 {
-    uint8_t buf[13];
-    for(int i=0;i<13;i++)
-        xQueueReceive(usbRxQueue, &buf[i], portMAX_DELAY);
+    uint8_t ch_idx;
+    uint8_t id_buf[4];
+    uint32_t can_id;
+    uint8_t dlc_val;
+    uint8_t data[64];
+    uint8_t footer;
 
-    uint32_t canId = buf[0] | (buf[1]<<8) | (buf[2]<<16) | (buf[3]<<24);
-    uint8_t dlc = buf[4];
+    // 1. Read Channel
+    if(xQueueReceive(usbRxQueue, &ch_idx, pdMS_TO_TICKS(10)) != pdPASS) return;
 
-    FDCAN_TxHeaderTypeDef TxHeader = {
-        .Identifier = canId,
-        .IdType = FDCAN_STANDARD_ID,
-        .TxFrameType = FDCAN_DATA_FRAME,
-        .DataLength = encode_dlc(dlc),
-        .FDFormat = FDCAN_CLASSIC_CAN,
-        .BitRateSwitch = FDCAN_BRS_OFF
-    };
+    // 2. Read ID (4 Bytes, Little Endian)
+    for(int i=0; i<4; i++) {
+        if(xQueueReceive(usbRxQueue, &id_buf[i], pdMS_TO_TICKS(10)) != pdPASS) return;
+    }
+    can_id = id_buf[0] | (id_buf[1] << 8) | (id_buf[2] << 16) | (id_buf[3] << 24);
 
-    HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan3, &TxHeader, &buf[5]);
+    // 3. Read DLC (Raw Data Length)
+    if(xQueueReceive(usbRxQueue, &dlc_val, pdMS_TO_TICKS(10)) != pdPASS) return;
+
+    // Safety Cap
+    if (dlc_val > 64) dlc_val = 64;
+
+    // 4. Read Data Payload
+    for(int i=0; i<dlc_val; i++) {
+        if(xQueueReceive(usbRxQueue, &data[i], pdMS_TO_TICKS(10)) != pdPASS) return;
+    }
+
+    // 5. Read Footer (Expect 0xBB)
+    if(xQueueReceive(usbRxQueue, &footer, pdMS_TO_TICKS(10)) != pdPASS) return;
+
+    if (footer != 0xBB) {
+        // Footer mismatch error - Packet likely corrupted
+        return;
+    }
+
+    // --- 6. Configure CAN Header ---
+    FDCAN_TxHeaderTypeDef TxHeader;
+
+    TxHeader.Identifier = can_id;
+
+    // Auto-detect Extended ID (29-bit) vs Standard (11-bit)
+    if (can_id > 0x7FF) {
+        TxHeader.IdType = FDCAN_EXTENDED_ID;
+    } else {
+        TxHeader.IdType = FDCAN_STANDARD_ID;
+    }
+
+    TxHeader.TxFrameType = FDCAN_DATA_FRAME;
+    TxHeader.DataLength = raw_dlc_to_hal(dlc_val);
+    TxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+    TxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
+    TxHeader.MessageMarker = 0;
+
+    // Auto-detect CAN FD vs Classic based on Data Length
+    // (If DLC > 8, it MUST be FD. If <=8, we default to Classic for compatibility)
+    if (dlc_val > 8) {
+        TxHeader.FDFormat = FDCAN_FD_CAN;
+        TxHeader.BitRateSwitch = FDCAN_BRS_ON; // Enable Fast Bitrate for FD
+    } else {
+        TxHeader.FDFormat = FDCAN_CLASSIC_CAN;
+        TxHeader.BitRateSwitch = FDCAN_BRS_OFF;
+    }
+
+    // --- 7. Select Hardware Channel ---
+    // Assuming: Channel 0 -> hfdcan2, Channel 1 -> hfdcan3 (Check your main.c for correct mapping)
+    FDCAN_HandleTypeDef *hfdcan = NULL;
+    if (ch_idx == 0) hfdcan = &hfdcan2;
+    else if (ch_idx == 1) hfdcan = &hfdcan3;
+
+    if (hfdcan != NULL) {
+        // Send Message
+        HAL_FDCAN_AddMessageToTxFifoQ(hfdcan, &TxHeader, data);
+    }
 }
 
 static uint32_t encode_dlc(uint8_t dlc)
@@ -193,3 +271,22 @@ static uint32_t encode_dlc(uint8_t dlc)
     }
 }
 
+// Helper to convert raw integer length (e.g. 8) to FDCAN Enum (e.g. FDCAN_DLC_BYTES_8)
+static uint32_t raw_dlc_to_hal(uint8_t dlc) {
+    if (dlc <= 0) return FDCAN_DLC_BYTES_0;
+    if (dlc == 1) return FDCAN_DLC_BYTES_1;
+    if (dlc == 2) return FDCAN_DLC_BYTES_2;
+    if (dlc == 3) return FDCAN_DLC_BYTES_3;
+    if (dlc == 4) return FDCAN_DLC_BYTES_4;
+    if (dlc == 5) return FDCAN_DLC_BYTES_5;
+    if (dlc == 6) return FDCAN_DLC_BYTES_6;
+    if (dlc == 7) return FDCAN_DLC_BYTES_7;
+    if (dlc == 8) return FDCAN_DLC_BYTES_8;
+    if (dlc <= 12) return FDCAN_DLC_BYTES_12;
+    if (dlc <= 16) return FDCAN_DLC_BYTES_16;
+    if (dlc <= 20) return FDCAN_DLC_BYTES_20;
+    if (dlc <= 24) return FDCAN_DLC_BYTES_24;
+    if (dlc <= 32) return FDCAN_DLC_BYTES_32;
+    if (dlc <= 48) return FDCAN_DLC_BYTES_48;
+    return FDCAN_DLC_BYTES_64;
+}
