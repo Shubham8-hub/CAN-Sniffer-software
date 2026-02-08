@@ -390,8 +390,11 @@ class MainWindow(QMainWindow):
         # This is a widget that holds tabs for Tx/Rx
         self.page_messenger = QTabWidget()
 
-        self.transmit_window = TransmitWindow()  # Add serial_mgr here if needed later
+        self.transmit_window = TransmitWindow(self.serial_mgr)  # Add serial_mgr here if needed later
+
         self.trace_window = TraceWindow(worker_thread=self.rx_thread)
+
+        self.transmit_window.message_sent.connect(self.trace_window.update_table)
 
         # Add tabs to the Messenger page
         self.page_messenger.addTab(self.transmit_window, "CAN Transmit")

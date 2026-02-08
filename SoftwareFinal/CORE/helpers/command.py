@@ -13,6 +13,9 @@ class Command:
     START_SNIFF =   0x51
     STOP_SNIFF  =   0x52
 
+    #Command to transmit CAN message
+    CMD_CAN_TX =    0x50
+
     # Command for setting the baudrate
     BAUD_RATES = [
         {"label": "125 KBPS", "bps": 125000, "cmd": 0x71},
