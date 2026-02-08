@@ -3,5 +3,5 @@
 ../Core/App/process.c:58:6:UsbRxTask	2
 ../Core/App/process.c:74:6:UsbTxTask	3
 ../Core/App/process.c:115:6:CAN_RxTask	3
-../Core/App/process.c:156:6:process_handle_can_tx	2
-../Core/App/process.c:177:17:encode_dlc	9
+../Core/App/process.c:160:6:process_handle_can_tx	2
+../Core/App/process.c:181:17:encode_dlc	9

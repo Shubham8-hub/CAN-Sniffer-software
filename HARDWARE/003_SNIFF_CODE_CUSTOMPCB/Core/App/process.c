@@ -117,6 +117,8 @@ void CAN_RxTask(void *argument)
     CANFrame_t frame;
     uint8_t usb_packet[16]; // Our 16-byte packet buffer
 
+    for(;;)
+    {
         // Wait for data from the ISR/Callback
         if (xQueueReceive(canRxQueue, &frame, portMAX_DELAY) == pdPASS)
         {
@@ -150,6 +152,8 @@ void CAN_RxTask(void *argument)
                 CDC_Transmit_FS(usb_packet, 16);
             }
         }
+
+    }
 
 }
 
