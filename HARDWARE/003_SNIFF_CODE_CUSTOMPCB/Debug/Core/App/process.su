@@ -1,8 +1,9 @@
-../Core/App/process.c:27:6:process_init	32	static,ignoring_inline_asm
-../Core/App/process.c:48:6:HeartbeatTask	16	static
-../Core/App/process.c:59:6:UsbRxTask	24	static
-../Core/App/process.c:75:6:UsbTxTask	32	static
-../Core/App/process.c:116:6:CAN_RxTask	48	static
-../Core/App/process.c:182:6:process_handle_can_tx	144	static
-../Core/App/process.c:259:17:encode_dlc	16	static
-../Core/App/process.c:275:17:raw_dlc_to_hal	16	static
+../Core/App/process.c:31:6:process_init	32	static,ignoring_inline_asm
+../Core/App/process.c:54:6:HeartbeatTask	16	static
+../Core/App/process.c:65:6:UsbRxTask	24	static
+../Core/App/process.c:81:6:UsbTxTask	32	static
+../Core/App/process.c:122:6:CAN_RxTask	48	static
+../Core/App/process.c:196:6:process_handle_can_tx	144	static
+../Core/App/process.c:273:17:encode_dlc	16	static
+../Core/App/process.c:289:17:raw_dlc_to_hal	16	static
+../Core/App/process.c:308:6:LedIndicatorTask	16	static

@@ -29,7 +29,7 @@ void HeartbeatTask(void *argument);
 void UsbRxTask(void *argument);
 void UsbTxTask(void *argument);
 void CAN_RxTask(void *argument);
-
+void LedIndicatorTask(void *argument);
 void process_handle_can_tx(void);
 
 extern QueueHandle_t canRxQueue;

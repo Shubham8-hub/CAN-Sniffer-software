@@ -16,6 +16,7 @@ extern FDCAN_HandleTypeDef hfdcan2;
 
 TaskHandle_t heartbeatTaskHandle;
 TaskHandle_t usbRxTaskHandle;
+TaskHandle_t ledTaskHandle;
 
 QueueHandle_t usbRxQueue;
 QueueHandle_t usbTxQueue;
@@ -23,6 +24,9 @@ QueueHandle_t canRxQueue;
 
 static uint32_t encode_dlc(uint8_t dlc);
 static uint32_t raw_dlc_to_hal(uint8_t dlc);
+
+volatile uint8_t ch0_activity_flag = 0;
+volatile uint8_t ch1_activity_flag = 0;
 
 void process_init(void)
 {
@@ -36,6 +40,8 @@ void process_init(void)
 	  configASSERT(canRxQueue != NULL);
 
 	  xTaskCreate(HeartbeatTask, "HeartBeat", 128, NULL, tskIDLE_PRIORITY+1, &heartbeatTaskHandle);
+
+	  xTaskCreate(LedIndicatorTask, "LedInd", 128, NULL, tskIDLE_PRIORITY+1, &ledTaskHandle);
 
 	  xTaskCreate(UsbRxTask, "USB RX", 256, NULL, tskIDLE_PRIORITY+2, &usbRxTaskHandle);
 
@@ -123,6 +129,14 @@ void CAN_RxTask(void *argument)
         // Wait for data from the ISR/Callback
         if (xQueueReceive(canRxQueue, &frame, portMAX_DELAY) == pdPASS)
         {
+        	// --- 1. SET ACTIVITY FLAGS ---
+			if (frame.channel == 0) {
+				ch0_activity_flag = 1;
+			}
+			else if (frame.channel == 1) {
+				ch1_activity_flag = 1;
+			}
+			// -----------------------------
             // Only send to USB if Trace is Active
             if (is_trace_running)
             {
@@ -289,4 +303,41 @@ static uint32_t raw_dlc_to_hal(uint8_t dlc) {
     if (dlc <= 32) return FDCAN_DLC_BYTES_32;
     if (dlc <= 48) return FDCAN_DLC_BYTES_48;
     return FDCAN_DLC_BYTES_64;
+}
+
+void LedIndicatorTask(void *argument)
+{
+    for(;;)
+    {
+        // Run every 250ms.
+        // 250ms ON + 250ms OFF = 500ms Blink Cycle
+        vTaskDelay(pdMS_TO_TICKS(250));
+
+        // --- Channel 0 (LED 2) ---
+        if (ch0_activity_flag == 1)
+        {
+            // Data received recently -> Toggle LED
+            HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+
+            // Clear flag. If data keeps coming, it will be set to 1 again
+            // by CAN_RxTask before the next 250ms check.
+            ch0_activity_flag = 0;
+        }
+        else
+        {
+            // No data recently -> Force LED OFF
+            HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
+        }
+
+        // --- Channel 1 (LED 3) ---
+        if (ch1_activity_flag == 1)
+        {
+            HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
+            ch1_activity_flag = 0;
+        }
+        else
+        {
+            HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_RESET);
+        }
+    }
 }
