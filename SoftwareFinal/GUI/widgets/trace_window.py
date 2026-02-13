@@ -305,6 +305,9 @@ class TraceWindow(DetachableWidget):
             self.model.setItem(visual_row_idx, 1, QStandardItem(str(data_packet.get('timestamp', '0.0'))))
             self.model.setItem(visual_row_idx, 2, QStandardItem(str(result['count'])))
 
+            # Add this to ensure the Channel column stays correct for that row
+            self.model.setItem(visual_row_idx, 3, QStandardItem(str(data_packet.get('channel', '0'))))
+
             # Prepare Highlight Brush
             highlight_brush = QBrush(QColor(255, 255, 0, 100))  # Yellow
             normal_brush = QBrush(Qt.NoBrush)

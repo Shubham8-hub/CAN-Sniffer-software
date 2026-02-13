@@ -52,30 +52,6 @@ static FDCAN_HandleTypeDef* get_handle_by_index(uint8_t ch_idx) {
     return NULL;
 }
 
-//static uint32_t get_speed_by_cmd(uint8_t cmd) {
-//    const CAN_Timing_t *t = get_timing_by_cmd(cmd);
-//    return (t) ? t->speed_bps : 500000;
-//}
-
-// Internal function to apply config to hardware
-//static void configure_fdcan_params(FDCAN_HandleTypeDef *hfdcan, const CAN_Timing_t *timing) {
-//    hfdcan->Init.NominalPrescaler = timing->prescaler;
-//    hfdcan->Init.NominalTimeSeg1 = timing->time_seg1;
-//    hfdcan->Init.NominalTimeSeg2 = timing->time_seg2;
-//    hfdcan->Init.NominalSyncJumpWidth = timing->sjw;
-//
-//    // Ensure standard settings are maintained
-//    hfdcan->Init.ClockDivider = FDCAN_CLOCK_DIV1;
-//    hfdcan->Init.FrameFormat = FDCAN_FRAME_CLASSIC; // Or FDCAN_FRAME_FD_BRS
-//    hfdcan->Init.Mode = FDCAN_MODE_NORMAL;
-//    hfdcan->Init.AutoRetransmission = ENABLE;
-//    hfdcan->Init.TransmitPause = DISABLE;
-//    hfdcan->Init.ProtocolException = DISABLE;
-//    hfdcan->Init.StdFiltersNbr = 0;
-//    hfdcan->Init.ExtFiltersNbr = 0;
-//    hfdcan->Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
-//}
-
 void CAN_Setting_Init(void) {
     // 1. Initialize with default 500k
     CAN_Set_Baudrate(0, CMD_BAUD_500K);
@@ -83,54 +59,6 @@ void CAN_Setting_Init(void) {
     // 2. Initialize Channel 2 if needed
      CAN_Set_Baudrate(1, CMD_BAUD_500K);
 }
-
-//uint8_t CAN_Set_Baudrate(uint8_t ch_idx, uint8_t baud_cmd) {
-//    FDCAN_HandleTypeDef *hfdcan = get_handle_by_index(ch_idx);
-//    if (hfdcan == NULL) return 0;
-//
-//    const CAN_Timing_t *timing = get_timing_by_cmd(baud_cmd);
-//    if (timing == NULL) {
-//        // Fallback to default if invalid
-//        timing = get_timing_by_cmd(CMD_BAUD_500K);
-//        baud_cmd = CMD_BAUD_500K;
-//    }
-//
-//    // 1. Stop and DeInit
-//    if (HAL_FDCAN_GetState(hfdcan) != HAL_FDCAN_STATE_RESET) {
-//        HAL_FDCAN_Stop(hfdcan);
-//    }
-//    HAL_FDCAN_DeInit(hfdcan);
-//
-//    // 2. Apply Timings (Important: Reset Instance!)
-//    if (ch_idx == 0) hfdcan->Instance = FDCAN2;
-//    else             hfdcan->Instance = FDCAN3;
-//
-//    hfdcan->Init.NominalPrescaler = timing->prescaler;
-//    hfdcan->Init.NominalTimeSeg1 = timing->time_seg1;
-//    hfdcan->Init.NominalTimeSeg2 = timing->time_seg2;
-//    hfdcan->Init.NominalSyncJumpWidth = timing->sjw;
-//
-//    // Standard Config
-//    hfdcan->Init.ClockDivider = FDCAN_CLOCK_DIV1;
-//    hfdcan->Init.FrameFormat = FDCAN_FRAME_CLASSIC;
-//    hfdcan->Init.Mode = FDCAN_MODE_NORMAL;
-//    hfdcan->Init.AutoRetransmission = ENABLE;
-//    hfdcan->Init.TransmitPause = DISABLE;
-//    hfdcan->Init.ProtocolException = DISABLE;
-//    hfdcan->Init.StdFiltersNbr = 0;
-//    hfdcan->Init.ExtFiltersNbr = 0;
-//    hfdcan->Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
-//
-//    // 3. Init and Start
-//    if (HAL_FDCAN_Init(hfdcan) != HAL_OK) return 0;
-//    if (HAL_FDCAN_Start(hfdcan) != HAL_OK) return 0;
-//
-//    // 4. Update State
-//    if (ch_idx == 0) current_baud_ch0 = baud_cmd;
-//    else             current_baud_ch1 = baud_cmd;
-//
-//    return 1;
-//}
 
 uint8_t CAN_Set_Baudrate(uint8_t ch_idx, uint8_t baud_cmd) {
     FDCAN_HandleTypeDef *hfdcan = get_handle_by_index(ch_idx);
@@ -150,8 +78,14 @@ uint8_t CAN_Set_Baudrate(uint8_t ch_idx, uint8_t baud_cmd) {
     HAL_FDCAN_DeInit(hfdcan);
 
     // 2. Set Instance and Timings
-    if (ch_idx == 0) hfdcan->Instance = FDCAN2;
-    else             hfdcan->Instance = FDCAN3;
+    if (ch_idx == 0)
+	{
+		hfdcan->Instance = FDCAN2;
+	}
+    else
+	{
+		hfdcan->Instance = FDCAN3;
+	}
 
     hfdcan->Init.NominalPrescaler = timing->prescaler;
     hfdcan->Init.NominalTimeSeg1 = timing->time_seg1;
@@ -162,30 +96,45 @@ uint8_t CAN_Set_Baudrate(uint8_t ch_idx, uint8_t baud_cmd) {
     hfdcan->Init.ClockDivider = FDCAN_CLOCK_DIV1;
     hfdcan->Init.FrameFormat = FDCAN_FRAME_CLASSIC; // Change to FDCAN_FRAME_FD_BRS if needed
     hfdcan->Init.Mode = FDCAN_MODE_NORMAL;
+//    hfdcan->Init.Mode = FDCAN_MODE_BUS_MONITORING;
     hfdcan->Init.AutoRetransmission = ENABLE;
     hfdcan->Init.TransmitPause = DISABLE;
     hfdcan->Init.ProtocolException = DISABLE;
     hfdcan->Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
+
+    hfdcan->Init.StdFiltersNbr = 1;
+    hfdcan->Init.ExtFiltersNbr = 0;
+//	hfdcan->Init.RxFifo0ElmtsNbr = 10;   // Reserve space for 10 messages in FIFO 0
+//	hfdcan->Init.RxFifo0ElmtSize = FDCAN_DATA_SIZE_8BYTES;
+//	hfdcan->Init.RxFifo1ElmtsNbr = 0;    // Not using FIFO 1
+//	hfdcan->Init.TxEventsElmtsNbr = 0;
+//	hfdcan->Init.TxBuffersElmtsNbr = 0;
+//	hfdcan->Init.TxFifoQueueElmtsNbr = 10;
+//	hfdcan->Init.TxElmtSize = FDCAN_DATA_SIZE_8BYTES;
 
     // 3. Re-Init
     if (HAL_FDCAN_Init(hfdcan) != HAL_OK) return 0;
 
     // 4. Configure Filters (If needed, add here, otherwise generic open filter)
     // Example: Allow all
-    // FDCAN_FilterTypeDef sFilterConfig;
-    // sFilterConfig.IdType = FDCAN_STANDARD_ID;
-    // sFilterConfig.FilterIndex = 0;
-    // sFilterConfig.FilterType = FDCAN_FILTER_MASK;
-    // sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
-    // sFilterConfig.FilterID1 = 0;
-    // sFilterConfig.FilterID2 = 0;
-    // HAL_FDCAN_ConfigFilter(hfdcan, &sFilterConfig);
+     FDCAN_FilterTypeDef sFilterConfig;
+     sFilterConfig.IdType = FDCAN_STANDARD_ID;
+     sFilterConfig.FilterIndex = 0;
+     sFilterConfig.FilterType = FDCAN_FILTER_MASK;
+     sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
+     sFilterConfig.FilterID1 = 0x000;
+     sFilterConfig.FilterID2 = 0x000;
+     HAL_FDCAN_ConfigFilter(hfdcan, &sFilterConfig);
+
+    // 6. Activate Interrupts (Important for your sniffer!)
+    HAL_FDCAN_ConfigGlobalFilter(hfdcan, FDCAN_ACCEPT_IN_RX_FIFO0, FDCAN_ACCEPT_IN_RX_FIFO0, FDCAN_REJECT_REMOTE, FDCAN_REJECT_REMOTE);
+
+	HAL_FDCAN_ActivateNotification(hfdcan, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
 
     // 5. Start
     if (HAL_FDCAN_Start(hfdcan) != HAL_OK) return 0;
 
-    // 6. Activate Interrupts (Important for your sniffer!)
-    HAL_FDCAN_ActivateNotification(hfdcan, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
+
 
     // Update State
     if (ch_idx == 0) current_baud_ch0 = baud_cmd;

@@ -22,24 +22,30 @@ class CanReceiveLogic:
         }
         """
         can_id = data.get('can_id', '000')
+        channel = data.get('channel', 0)
+
+        unique_key = f"{can_id}_{channel}"
         raw_data = data.get('data', [])  # Expecting list of hex strings or bytes
 
-        # Ensure raw_data is a list of integers for comparison
-        if isinstance(raw_data, str):
-            # Handle space-separated string "FF 01" -> [255, 1]
-            try:
-                int_data = [int(x, 16) for x in raw_data.split()]
-            except:
-                int_data = []
-        else:
-            int_data = raw_data
+        # # Ensure raw_data is a list of integers for comparison
+        # if isinstance(raw_data, str):
+        #     # Handle space-separated string "FF 01" -> [255, 1]
+        #     try:
+        #         int_data = [int(x, 16) for x in raw_data.split()]
+        #     except:
+        #         int_data = []
+        # else:
+        #     int_data = raw_data
+        #
+        # is_new_id = can_id not in self.packet_map
+        int_data = raw_data
 
-        is_new_id = can_id not in self.packet_map
+        is_new_id = unique_key not in self.packet_map
 
         if is_new_id:
             # --- NEW ENTRY ---
             row_idx = self.next_row_index
-            self.packet_map[can_id] = {
+            self.packet_map[unique_key] = {
                 'row_index': row_idx,
                 'count': 1,
                 'last_data': int_data
@@ -56,7 +62,7 @@ class CanReceiveLogic:
 
         else:
             # --- UPDATE ENTRY ---
-            record = self.packet_map[can_id]
+            record = self.packet_map[unique_key]
             record['count'] += 1
             row_idx = record['row_index']
             last_data = record['last_data']

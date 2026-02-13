@@ -1,9 +1,9 @@
 ../Core/App/process.c:31:6:process_init	4
 ../Core/App/process.c:54:6:HeartbeatTask	1
 ../Core/App/process.c:65:6:UsbRxTask	2
-../Core/App/process.c:81:6:UsbTxTask	3
-../Core/App/process.c:122:6:CAN_RxTask	5
-../Core/App/process.c:196:6:process_handle_can_tx	15
-../Core/App/process.c:273:17:encode_dlc	9
-../Core/App/process.c:289:17:raw_dlc_to_hal	16
-../Core/App/process.c:308:6:LedIndicatorTask	3
+../Core/App/process.c:81:6:UsbTxTask	4
+../Core/App/process.c:123:6:CAN_RxTask	5
+../Core/App/process.c:198:6:process_handle_can_tx	15
+../Core/App/process.c:275:17:encode_dlc	9
+../Core/App/process.c:291:17:raw_dlc_to_hal	16
+../Core/App/process.c:310:6:LedIndicatorTask	3

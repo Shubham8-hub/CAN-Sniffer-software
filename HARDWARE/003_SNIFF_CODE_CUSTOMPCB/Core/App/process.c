@@ -33,7 +33,7 @@ void process_init(void)
 	  usbRxQueue =	xQueueCreate(32,sizeof(uint8_t));
 	  configASSERT(usbRxQueue != NULL);
 
-	  usbTxQueue = xQueueCreate(128, 14);
+	  usbTxQueue = xQueueCreate(128, 16);
 	  configASSERT(usbTxQueue != NULL);
 
 	  canRxQueue	=	xQueueCreate(16,sizeof(CANFrame_t));
@@ -80,14 +80,15 @@ void UsbRxTask(void *argument)
 
 void UsbTxTask(void *argument)
 {
-    uint8_t resp[14];
+    uint8_t resp[16];
 
     for(;;)
     {
         if (xQueueReceive(usbTxQueue, resp, portMAX_DELAY) == pdPASS)
         {
+        	uint8_t len = (resp[0] == 0xAA) ? 16 : 14;
             // Wait until USB is ready
-            while (CDC_Transmit_FS(resp, 14) == USBD_BUSY)
+            while (CDC_Transmit_FS(resp, len) == USBD_BUSY)
             {
                 vTaskDelay(pdMS_TO_TICKS(1));
             }
@@ -164,7 +165,8 @@ void CAN_RxTask(void *argument)
 
                 // 7. Send to USB Queue
                 // Note: Ensure your USB Task sends all 16 bytes!
-                CDC_Transmit_FS(usb_packet, 16);
+//                CDC_Transmit_FS(usb_packet, 16);
+                xQueueSend(usbTxQueue,usb_packet,portMAX_DELAY);
             }
         }
 
