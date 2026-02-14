@@ -39,6 +39,7 @@ Core/App/process.o: ../Core/App/process.c ../Core/App/process.h \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_flash.h \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_flash_ex.h \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_flash_ramfunc.h \
+ ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_iwdg.h \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_pcd.h \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_usb.h \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_pcd_ex.h \
@@ -91,6 +92,7 @@ F:/SNIFFER_CODING/HARDWARE/003_SNIFF_CODE_CUSTOMPCB/Core/Protocol/command.h:
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_flash.h:
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_flash_ex.h:
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_flash_ramfunc.h:
+../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_iwdg.h:
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_pcd.h:
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_usb.h:
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_pcd_ex.h:

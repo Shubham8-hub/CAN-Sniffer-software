@@ -69,6 +69,7 @@ class SerialManager(QObject):
     def start_sniffing(self):
         if self.serial.isOpen():
             self.is_sniffing = True
+            self.serial.readyRead.disconnect(self._on_ready_read)
             # Send the Start Sniff Command (0x51)
             self._send_command(Command.START_SNIFF)
 
@@ -79,12 +80,20 @@ class SerialManager(QObject):
             self._send_command(Command.STOP_SNIFF)
             self.is_sniffing = False
 
+            self.serial.readyRead.connect(self._on_ready_read)
+            self._rx_buffer.clear()
+
     def _on_ready_read(self):
+
+        incoming_data = self.serial.readAll()
+
+        if not incoming_data:
+            return
 
         if self.is_sniffing:
             return
 
-        self._rx_buffer.extend(self.serial.readAll())
+        self._rx_buffer.extend(incoming_data)
 
         # Check command type from first byte
         if len(self._rx_buffer) < 1:

@@ -96,6 +96,12 @@ class CanReceiverThread(QThread):
                     # Remove processed packet from buffer
                     del buffer[0:PACKET_SIZE]
 
+                    # ADD THIS: Prevent infinite loop on corrupted data
+                    if len(buffer) > 1000:  # Safety limit
+                        print("WARNING: Buffer overflow, clearing corrupted data")
+                        buffer.clear()
+                        break
+
             # Sleep briefly to prevent 100% CPU usage
             self.msleep(1)
 

@@ -50,6 +50,8 @@
 FDCAN_HandleTypeDef hfdcan2;
 FDCAN_HandleTypeDef hfdcan3;
 
+IWDG_HandleTypeDef hiwdg;
+
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -59,6 +61,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 //static void MX_FDCAN2_Init(void);
 //static void MX_FDCAN3_Init(void);
+static void MX_IWDG_Init(void);
 /* USER CODE BEGIN PFP */
 //CAN_Setting_Init();
 /* USER CODE END PFP */
@@ -66,47 +69,107 @@ static void MX_GPIO_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+//void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
+//{
+//    if((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != 0)
+//    {
+//        FDCAN_RxHeaderTypeDef rxHeader;
+//        uint8_t rxData[8];
+//        CANFrame_t frame;
+//
+//        HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &rxHeader, rxData);
+//
+//        frame.id = rxHeader.Identifier;
+//        // --- NEW: Populate Channel based on Hardware Instance ---
+//		if (hfdcan->Instance == FDCAN2)
+//		{
+//			frame.channel = 0; // Channel 0
+//		}
+//		else if (hfdcan->Instance == FDCAN3)
+//		{
+//			frame.channel = 1; // Channel 1
+//		}
+//		// -------------------------------------------------------
+//        // Decode DLC properly
+//        switch(rxHeader.DataLength) {
+//            case FDCAN_DLC_BYTES_0: frame.dlc = 0; break;
+//            case FDCAN_DLC_BYTES_1: frame.dlc = 1; break;
+//            case FDCAN_DLC_BYTES_2: frame.dlc = 2; break;
+//            case FDCAN_DLC_BYTES_3: frame.dlc = 3; break;
+//            case FDCAN_DLC_BYTES_4: frame.dlc = 4; break;
+//            case FDCAN_DLC_BYTES_5: frame.dlc = 5; break;
+//            case FDCAN_DLC_BYTES_6: frame.dlc = 6; break;
+//            case FDCAN_DLC_BYTES_7: frame.dlc = 7; break;
+//            case FDCAN_DLC_BYTES_8: frame.dlc = 8; break;
+//            default: frame.dlc = 0; break;
+//        }
+//
+//        memcpy(frame.data, rxData, 8);
+//
+//        xQueueSendFromISR(canRxQueue, &frame, NULL);
+//    }
+//}
+
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 {
+    // Check if the interrupt was indeed for a New Message in FIFO 0
     if((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != 0)
     {
         FDCAN_RxHeaderTypeDef rxHeader;
         uint8_t rxData[8];
         CANFrame_t frame;
 
-        HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &rxHeader, rxData);
+        // This variable keeps track if we need to wake up the CAN Processing task
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-        frame.id = rxHeader.Identifier;
-        // --- NEW: Populate Channel based on Hardware Instance ---
-		if (hfdcan->Instance == FDCAN2)
-		{
-			frame.channel = 0; // Channel 0
-		}
-		else if (hfdcan->Instance == FDCAN3)
-		{
-			frame.channel = 1; // Channel 1
-		}
-		// -------------------------------------------------------
-        // Decode DLC properly
-        switch(rxHeader.DataLength) {
-            case FDCAN_DLC_BYTES_0: frame.dlc = 0; break;
-            case FDCAN_DLC_BYTES_1: frame.dlc = 1; break;
-            case FDCAN_DLC_BYTES_2: frame.dlc = 2; break;
-            case FDCAN_DLC_BYTES_3: frame.dlc = 3; break;
-            case FDCAN_DLC_BYTES_4: frame.dlc = 4; break;
-            case FDCAN_DLC_BYTES_5: frame.dlc = 5; break;
-            case FDCAN_DLC_BYTES_6: frame.dlc = 6; break;
-            case FDCAN_DLC_BYTES_7: frame.dlc = 7; break;
-            case FDCAN_DLC_BYTES_8: frame.dlc = 8; break;
-            default: frame.dlc = 0; break;
+        /*
+           ADDITION 1: Loop as long as there is data in the hardware FIFO.
+           Since G4 hardware only has 3 slots, we must clear them all
+           immediately or we will get a FIFO Overflow error.
+        */
+        while (HAL_FDCAN_GetRxFifoFillLevel(hfdcan, FDCAN_RX_FIFO0) > 0)
+        {
+            // Read message and ensure it returned HAL_OK
+            if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &rxHeader, rxData) == HAL_OK)
+            {
+                frame.id = rxHeader.Identifier;
+
+                // Set Channel index
+                if (hfdcan->Instance == FDCAN2) frame.channel = 0;
+                else if (hfdcan->Instance == FDCAN3) frame.channel = 1;
+
+                // Decode DLC enum to raw byte count
+                switch(rxHeader.DataLength) {
+                    case FDCAN_DLC_BYTES_0: frame.dlc = 0; break;
+                    case FDCAN_DLC_BYTES_1: frame.dlc = 1; break;
+                    case FDCAN_DLC_BYTES_2: frame.dlc = 2; break;
+                    case FDCAN_DLC_BYTES_3: frame.dlc = 3; break;
+                    case FDCAN_DLC_BYTES_4: frame.dlc = 4; break;
+                    case FDCAN_DLC_BYTES_5: frame.dlc = 5; break;
+                    case FDCAN_DLC_BYTES_6: frame.dlc = 6; break;
+                    case FDCAN_DLC_BYTES_7: frame.dlc = 7; break;
+                    case FDCAN_DLC_BYTES_8: frame.dlc = 8; break;
+                    default: frame.dlc = 0; break;
+                }
+
+                memcpy(frame.data, rxData, 8);
+
+                /*
+                   ADDITION 2: Send to Queue and track if a high priority task
+                   (like your CAN Processing Task) is now ready to run.
+                */
+                xQueueSendFromISR(canRxQueue, &frame, &xHigherPriorityTaskWoken);
+            }
         }
 
-        memcpy(frame.data, rxData, 8);
-
-        xQueueSendFromISR(canRxQueue, &frame, NULL);
+        /*
+           ADDITION 3: Perform a Context Switch.
+           If a task was waiting for this data, it starts RUNNING NOW
+           instead of waiting 1 millisecond for the OS Tick.
+        */
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
     }
 }
-
 /* USER CODE END 0 */
 
 /**
@@ -140,8 +203,8 @@ int main(void)
   MX_GPIO_Init();
 //  MX_FDCAN2_Init();
 //  MX_FDCAN3_Init();
-
   MX_USB_Device_Init();
+  MX_IWDG_Init();
   /* USER CODE BEGIN 2 */
 //  HAL_FDCAN_ActivateNotification(&hfdcan3,
 //                                 FDCAN_IT_RX_FIFO0_NEW_MESSAGE,
@@ -187,15 +250,17 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_LSI
+                              |RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV3;
   RCC_OscInitStruct.PLL.PLLN = 20;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV4;
+  RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
   RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
@@ -226,19 +291,19 @@ void SystemClock_Config(void)
 //{
 //
 //  /* USER CODE BEGIN FDCAN2_Init 0 */
-//
+////
 //  /* USER CODE END FDCAN2_Init 0 */
 //
 //  /* USER CODE BEGIN FDCAN2_Init 1 */
-//
+////
 //  /* USER CODE END FDCAN2_Init 1 */
 //  hfdcan2.Instance = FDCAN2;
 //  hfdcan2.Init.ClockDivider = FDCAN_CLOCK_DIV1;
 //  hfdcan2.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
 //  hfdcan2.Init.Mode = FDCAN_MODE_NORMAL;
-//  hfdcan2.Init.AutoRetransmission = ENABLE;
+//  hfdcan2.Init.AutoRetransmission = DISABLE;
 //  hfdcan2.Init.TransmitPause = DISABLE;
-//  hfdcan2.Init.ProtocolException = ENABLE;
+//  hfdcan2.Init.ProtocolException = DISABLE;
 //  hfdcan2.Init.NominalPrescaler = 10;
 //  hfdcan2.Init.NominalSyncJumpWidth = 1;
 //  hfdcan2.Init.NominalTimeSeg1 = 13;
@@ -255,19 +320,19 @@ void SystemClock_Config(void)
 //    Error_Handler();
 //  }
 //  /* USER CODE BEGIN FDCAN2_Init 2 */
-//  FDCAN_FilterTypeDef sFilterConfig = {0};
-//  sFilterConfig.IdType = FDCAN_STANDARD_ID;
-//  sFilterConfig.FilterIndex = 0;
-//  sFilterConfig.FilterType = FDCAN_FILTER_RANGE;
-//  sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
-//  sFilterConfig.FilterID1 = 0x000;
-//  sFilterConfig.FilterID2 = 0x7FF;
-//  HAL_FDCAN_ConfigFilter(&hfdcan2, &sFilterConfig);
-//  HAL_FDCAN_ConfigGlobalFilter(&hfdcan2,
-//                               FDCAN_REJECT,
-//                               FDCAN_REJECT,
-//                               FDCAN_FILTER_REMOTE,
-//                               FDCAN_FILTER_REMOTE);
+////  FDCAN_FilterTypeDef sFilterConfig = {0};
+////  sFilterConfig.IdType = FDCAN_STANDARD_ID;
+////  sFilterConfig.FilterIndex = 0;
+////  sFilterConfig.FilterType = FDCAN_FILTER_RANGE;
+////  sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
+////  sFilterConfig.FilterID1 = 0x000;
+////  sFilterConfig.FilterID2 = 0x7FF;
+////  HAL_FDCAN_ConfigFilter(&hfdcan2, &sFilterConfig);
+////  HAL_FDCAN_ConfigGlobalFilter(&hfdcan2,
+////                               FDCAN_REJECT,
+////                               FDCAN_REJECT,
+////                               FDCAN_FILTER_REMOTE,
+////                               FDCAN_FILTER_REMOTE);
 //  /* USER CODE END FDCAN2_Init 2 */
 //
 //}
@@ -281,19 +346,19 @@ void SystemClock_Config(void)
 //{
 //
 //  /* USER CODE BEGIN FDCAN3_Init 0 */
-//
+////
 //  /* USER CODE END FDCAN3_Init 0 */
 //
 //  /* USER CODE BEGIN FDCAN3_Init 1 */
-//
+////
 //  /* USER CODE END FDCAN3_Init 1 */
 //  hfdcan3.Instance = FDCAN3;
 //  hfdcan3.Init.ClockDivider = FDCAN_CLOCK_DIV1;
 //  hfdcan3.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
 //  hfdcan3.Init.Mode = FDCAN_MODE_NORMAL;
-//  hfdcan3.Init.AutoRetransmission = ENABLE;
+//  hfdcan3.Init.AutoRetransmission = DISABLE;
 //  hfdcan3.Init.TransmitPause = DISABLE;
-//  hfdcan3.Init.ProtocolException = ENABLE;
+//  hfdcan3.Init.ProtocolException = DISABLE;
 //  hfdcan3.Init.NominalPrescaler = 10;
 //  hfdcan3.Init.NominalSyncJumpWidth = 1;
 //  hfdcan3.Init.NominalTimeSeg1 = 13;
@@ -302,7 +367,7 @@ void SystemClock_Config(void)
 //  hfdcan3.Init.DataSyncJumpWidth = 1;
 //  hfdcan3.Init.DataTimeSeg1 = 1;
 //  hfdcan3.Init.DataTimeSeg2 = 1;
-//  hfdcan3.Init.StdFiltersNbr = 1;
+//  hfdcan3.Init.StdFiltersNbr = 0;
 //  hfdcan3.Init.ExtFiltersNbr = 0;
 //  hfdcan3.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
 //  if (HAL_FDCAN_Init(&hfdcan3) != HAL_OK)
@@ -310,22 +375,51 @@ void SystemClock_Config(void)
 //    Error_Handler();
 //  }
 //  /* USER CODE BEGIN FDCAN3_Init 2 */
-//  FDCAN_FilterTypeDef sFilterConfig = {0};
-//  sFilterConfig.IdType = FDCAN_STANDARD_ID;
-//  sFilterConfig.FilterIndex = 0;
-//  sFilterConfig.FilterType = FDCAN_FILTER_RANGE;
-//  sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
-//  sFilterConfig.FilterID1 = 0x000;
-//  sFilterConfig.FilterID2 = 0x7FF;
-//  HAL_FDCAN_ConfigFilter(&hfdcan3, &sFilterConfig);
-//  HAL_FDCAN_ConfigGlobalFilter(&hfdcan3,
-//                               FDCAN_REJECT,
-//                               FDCAN_REJECT,
-//                               FDCAN_FILTER_REMOTE,
-//                               FDCAN_FILTER_REMOTE);
+////  FDCAN_FilterTypeDef sFilterConfig = {0};
+////  sFilterConfig.IdType = FDCAN_STANDARD_ID;
+////  sFilterConfig.FilterIndex = 0;
+////  sFilterConfig.FilterType = FDCAN_FILTER_RANGE;
+////  sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
+////  sFilterConfig.FilterID1 = 0x000;
+////  sFilterConfig.FilterID2 = 0x7FF;
+////  HAL_FDCAN_ConfigFilter(&hfdcan3, &sFilterConfig);
+////  HAL_FDCAN_ConfigGlobalFilter(&hfdcan3,
+////                               FDCAN_REJECT,
+////                               FDCAN_REJECT,
+////                               FDCAN_FILTER_REMOTE,
+////                               FDCAN_FILTER_REMOTE);
 //  /* USER CODE END FDCAN3_Init 2 */
 //
 //}
+
+/**
+  * @brief IWDG Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_IWDG_Init(void)
+{
+
+  /* USER CODE BEGIN IWDG_Init 0 */
+
+  /* USER CODE END IWDG_Init 0 */
+
+  /* USER CODE BEGIN IWDG_Init 1 */
+
+  /* USER CODE END IWDG_Init 1 */
+  hiwdg.Instance = IWDG;
+  hiwdg.Init.Prescaler = IWDG_PRESCALER_256;
+  hiwdg.Init.Window = 499;
+  hiwdg.Init.Reload = 499;
+  if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN IWDG_Init 2 */
+
+  /* USER CODE END IWDG_Init 2 */
+
+}
 
 /**
   * @brief GPIO Initialization Function

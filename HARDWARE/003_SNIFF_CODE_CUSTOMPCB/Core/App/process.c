@@ -11,8 +11,16 @@
 #include "stm32g4xx_hal_fdcan.h"
 #include "main.h"
 
-extern FDCAN_HandleTypeDef hfdcan3;
-extern FDCAN_HandleTypeDef hfdcan2;
+#define BIT_USB_RX_TASK		(1 << 0)
+#define BIT_CAN_RX_TASK   	(1 << 1)
+#define BIT_USB_TX_TASK   	(1 << 2)
+
+// All critical bits combined
+#define ALL_TASKS_ALIVE (BIT_USB_RX_TASK | BIT_CAN_RX_TASK | BIT_USB_TX_TASK)
+
+extern FDCAN_HandleTypeDef 	hfdcan3;
+extern FDCAN_HandleTypeDef 	hfdcan2;
+extern IWDG_HandleTypeDef 	hiwdg;
 
 TaskHandle_t heartbeatTaskHandle;
 TaskHandle_t usbRxTaskHandle;
@@ -27,6 +35,13 @@ static uint32_t raw_dlc_to_hal(uint8_t dlc);
 
 volatile uint8_t ch0_activity_flag = 0;
 volatile uint8_t ch1_activity_flag = 0;
+
+static uint32_t task_live_bits = 0;
+
+// Helper function for tasks to report they are running
+void report_task_alive(uint32_t task_bit) {
+    task_live_bits |= task_bit;
+}
 
 void process_init(void)
 {
@@ -51,15 +66,40 @@ void process_init(void)
 
 }
 
-void HeartbeatTask(void *argument)
-{
-	(void)argument;
+//void HeartbeatTask(void *argument)
+//{
+//	(void)argument;
+//
+//	for(;;)
+//	{
+//		HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
+//		vTaskDelay(pdMS_TO_TICKS(1000));
+//	}
+//}
+void HeartbeatTask(void *argument) {
+    (void)argument;
+    for(;;) {
+        // We wait 2 seconds. The IWDG is configured for ~4 seconds in your main.c
+        vTaskDelay(pdMS_TO_TICKS(1000));
 
-	for(;;)
-	{
-		HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
-		vTaskDelay(pdMS_TO_TICKS(1000));
-	}
+        // CHECK: Are all bits set?
+        if ((task_live_bits & ALL_TASKS_ALIVE) == ALL_TASKS_ALIVE) {
+            // YES: Every task reported in! Reset the chip's watchdog
+            HAL_IWDG_Refresh(&hiwdg);
+
+            // Toggle LED 4 to show a successful "Watchdog Kick"
+            HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
+
+            // CLEAR bits for the next 2-second window
+            task_live_bits = 0;
+        } else {
+            // NO: One of the tasks (USB or CAN) is frozen.
+            // Do NOT refresh. The IWDG will expire and reset the MCU automatically.
+
+            // Optional: Toggle a different LED or leave LED4 off as a visual warning
+        	HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, GPIO_PIN_SET);
+        }
+    }
 }
 
 void UsbRxTask(void *argument)
@@ -69,11 +109,14 @@ void UsbRxTask(void *argument)
 
 	for(;;)
 	{
-		if (xQueueReceive(usbRxQueue, &cmdByte, portMAX_DELAY)==pdPASS)
+		report_task_alive(BIT_USB_RX_TASK);
+
+		if (xQueueReceive(usbRxQueue, &cmdByte, pdMS_TO_TICKS(100))==pdPASS)
 		{
 			command_process(cmdByte);
 
 		}
+
 	}
 }
 
@@ -84,7 +127,9 @@ void UsbTxTask(void *argument)
 
     for(;;)
     {
-        if (xQueueReceive(usbTxQueue, resp, portMAX_DELAY) == pdPASS)
+    	report_task_alive(BIT_USB_TX_TASK);
+
+        if (xQueueReceive(usbTxQueue, resp, pdMS_TO_TICKS(100)) == pdPASS)
         {
         	uint8_t len = (resp[0] == 0xAA) ? 16 : 14;
             // Wait until USB is ready
@@ -93,6 +138,7 @@ void UsbTxTask(void *argument)
                 vTaskDelay(pdMS_TO_TICKS(1));
             }
         }
+
     }
 }
 
@@ -127,8 +173,10 @@ void CAN_RxTask(void *argument)
 
     for(;;)
     {
+    	report_task_alive(BIT_CAN_RX_TASK);
+
         // Wait for data from the ISR/Callback
-        if (xQueueReceive(canRxQueue, &frame, portMAX_DELAY) == pdPASS)
+        if (xQueueReceive(canRxQueue, &frame, pdMS_TO_TICKS(100)) == pdPASS)
         {
         	// --- 1. SET ACTIVITY FLAGS ---
 			if (frame.channel == 0) {
@@ -166,7 +214,7 @@ void CAN_RxTask(void *argument)
                 // 7. Send to USB Queue
                 // Note: Ensure your USB Task sends all 16 bytes!
 //                CDC_Transmit_FS(usb_packet, 16);
-                xQueueSend(usbTxQueue,usb_packet,portMAX_DELAY);
+                xQueueSend(usbTxQueue,usb_packet,pdMS_TO_TICKS(30));
             }
         }
 

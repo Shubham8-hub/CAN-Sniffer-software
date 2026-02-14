@@ -28,6 +28,7 @@ USB_Device/App/usbd_cdc_if.o: ../USB_Device/App/usbd_cdc_if.c \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_flash.h \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_flash_ex.h \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_flash_ramfunc.h \
+ ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_iwdg.h \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_pcd.h \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_usb.h \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_pcd_ex.h \
@@ -77,6 +78,7 @@ USB_Device/App/usbd_cdc_if.o: ../USB_Device/App/usbd_cdc_if.c \
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_flash.h:
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_flash_ex.h:
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_flash_ramfunc.h:
+../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_iwdg.h:
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_pcd.h:
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_usb.h:
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_pcd_ex.h:
