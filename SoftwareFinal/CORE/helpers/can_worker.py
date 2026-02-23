@@ -1,4 +1,4 @@
-from PySide6.QtCore import QThread, Signal, QMutex
+from PySide6.QtCore import QThread, Signal, QMutex, QMutexLocker
 from CORE.tester.transmit_test import TestTraceGenerator
 from CORE.helpers.device_record import state
 import time
@@ -21,6 +21,21 @@ class CanReceiverThread(QThread):
         self.tester = TestTraceGenerator()
         self.mutex = QMutex()
 
+        self.packet_bucket = []
+
+    def get_and_clear_packets(self):
+        """Thread-safe extraction of collected packets"""
+        # locker = QMutexLocker(self.mutex)
+        # packets = self.packet_bucket[:]
+        # self.packet_bucket.clear()
+        # return packets
+        with QMutexLocker(self.mutex):
+            if not self.packet_bucket:
+                return []
+            packets = self.packet_bucket
+            self.packet_bucket = []  # Create a new empty list immediately
+            return packets
+
     def set_test_mode(self, enabled: bool):
         """Helper to toggle mode safely from GUI"""
         self.mutex.lock()
@@ -31,7 +46,9 @@ class CanReceiverThread(QThread):
         buffer = bytearray()
         PACKET_SIZE = 16  # Fixed packet size from your C code
 
+
         while self._is_running:
+
             # 1. SIMULATION MODE (Keep this if you use it)
             if self.testtrace == 1:
                 data = self.tester.generate()
@@ -48,7 +65,7 @@ class CanReceiverThread(QThread):
                 if len(available_bytes) > 0:
 
                     raw_hex = available_bytes.data().hex().upper()
-                    print(f"DEBUG RX: {raw_hex}")
+                    # print(f"DEBUG RX: {raw_hex}")
                     buffer.extend(available_bytes.data())  # Convert QByteArray to Python bytes/bytearray
 
                 # B. Process Buffer
@@ -66,7 +83,7 @@ class CanReceiverThread(QThread):
                         # Remove the header so we can search for a new one
                         buffer.pop(0)
                         continue
-                    print(f"DEBUG PKT: ID={struct.unpack('<I', buffer[2:6])[0]:X}")
+                    # print(f"DEBUG PKT: ID={struct.unpack('<I', buffer[2:6])[0]:X}")
 
                     # --- VALID PACKET FOUND ---
                     # Format: AA [CH] [ID:4] [DLC] [DATA:8] BB
@@ -91,7 +108,9 @@ class CanReceiverThread(QThread):
                     }
 
                     # Send to GUI
-                    self.data_received.emit(packet)
+                    with QMutexLocker(self.mutex):
+                        # self.data_received.emit(packet)
+                        self.packet_bucket.append(packet)
 
                     # Remove processed packet from buffer
                     del buffer[0:PACKET_SIZE]

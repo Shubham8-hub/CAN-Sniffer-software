@@ -3,7 +3,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTableView,
                                QHeaderView, QPushButton, QFrame, QGridLayout,
                                QLabel, QCheckBox, QLineEdit, QComboBox, QSpacerItem, QSizePolicy)
 from PySide6.QtGui import QStandardItemModel, QStandardItem, QColor, QBrush, QIcon
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from .detachable_widget import DetachableWidget
 from CORE.CAN.can_receive import CanReceiveLogic
 
@@ -53,7 +53,32 @@ class TraceWindow(DetachableWidget):
         self.btn_settings.clicked.connect(self.toggle_settings)
         self.table_layout.insertWidget(0, self.btn_settings, alignment=Qt.AlignRight)
 
+        self.ui_update_timer = QTimer()
+        self.ui_update_timer.timeout.connect(self.process_batch)
+        self.ui_update_timer.start(100)
+
         self.setup_columns()
+
+    def process_batch(self):
+        """Pull all waiting packets from thread and update UI at once"""
+        if not self.worker_thread or self.btn_pause.isChecked():
+            return
+
+        packets = self.worker_thread.get_and_clear_packets()
+        if not packets:
+            return
+
+        # Optimization: Disable UI updates while adding many rows
+        self.table.setUpdatesEnabled(False)
+        self.table.viewport().blockSignals(True)
+        for packet in packets:
+            self.update_table(packet)
+
+        self.table.viewport().blockSignals(False)
+        self.table.setUpdatesEnabled(True)
+
+        self.table.scrollToBottom()
+
 
     def set_child_layout(self, layout):
         container_widget = QWidget()
@@ -252,87 +277,177 @@ class TraceWindow(DetachableWidget):
 
         int_data = result['int_data']
 
-        # --- HANDLE NEW ROW (ADD) ---
-        if result['action'] == 'ADD':
-            # ---------------------------
-            # ROW 1: HEX DATA + METADATA
-            # ---------------------------
-            row1_items = []
-            # Metadata Columns (0-7)
-            row1_items.append(QStandardItem(str(result['row_index'] + 1)))  # Sr.
-            row1_items.append(QStandardItem(str(data_packet.get('timestamp', '0.0'))))  # Time
-            row1_items.append(QStandardItem(str(result['count'])))  # Count
-            row1_items.append(QStandardItem(str(data_packet.get('channel', '0'))))
-            row1_items.append(QStandardItem(str(data_packet.get('can_id', '000'))))
-            row1_items.append(QStandardItem(str(data_packet.get('type', 'STD'))))
-            row1_items.append(QStandardItem(str(data_packet.get('direction', 'Rx'))))
-            row1_items.append(QStandardItem(str(data_packet.get('dlc', '0'))))
+        is_fd = self.combo_type.currentIndex() == 1
+        max_data_cols = 64 if is_fd else 8
 
-            # Data Columns (Hex)
-            for val in int_data:
-                # Hex format
-                row1_items.append(QStandardItem(f"{val:02X}"))
+        # --- HANDLE NEW ROW (ADD) ---
+        # if result['action'] == 'ADD':
+        #     # ---------------------------
+        #     # ROW 1: HEX DATA + METADATA
+        #     # ---------------------------
+        #     row1_items = []
+        #     # Metadata Columns (0-7)
+        #     row1_items.append(QStandardItem(str(result['row_index'] + 1)))  # Sr.
+        #     row1_items.append(QStandardItem(str(data_packet.get('timestamp', '0.0'))))  # Time
+        #     row1_items.append(QStandardItem(str(result['count'])))  # Count
+        #     row1_items.append(QStandardItem(str(data_packet.get('channel', '0'))))
+        #     row1_items.append(QStandardItem(str(data_packet.get('can_id', '000'))))
+        #     row1_items.append(QStandardItem(str(data_packet.get('type', 'STD'))))
+        #     row1_items.append(QStandardItem(str(data_packet.get('direction', 'Rx'))))
+        #     row1_items.append(QStandardItem(str(data_packet.get('dlc', '0'))))
+        #
+        #     # Data Columns (Hex)
+        #     for val in int_data:
+        #         # Hex format
+        #         row1_items.append(QStandardItem(f"{val:02X}"))
+        #
+        #     self.model.appendRow(row1_items)
+        #
+        #     # ---------------------------
+        #     # ROW 2: BINARY DATA (Optional)
+        #     # ---------------------------
+        #     if show_binary:
+        #         row2_items = []
+        #         # Metadata placeholders (Empty, because we will span Row 1 over them)
+        #         for _ in range(8):
+        #             row2_items.append(QStandardItem(""))
+        #
+        #         # Data Columns (Binary)
+        #         for val in int_data:
+        #             # Binary format (e.g., 00001111)
+        #             row2_items.append(QStandardItem(f"{val:08b}"))
+        #
+        #         self.model.appendRow(row2_items)
+        #
+        #         # --- SPANNING LOGIC ---
+        #         # Make Metadata columns (0-7) cover both rows (Visual Row N and N+1)
+        #         for col in range(8):
+        #             self.table.setSpan(visual_row_idx, col, 2, 1)
+        #
+        #     self.table.scrollToBottom()
+
+        # --- CASE: NEW CAN ID DISCOVERED (ADD ROW) ---
+        if result['action'] == 'ADD':
+            # Create Row 1 items ... (Metadata + Hex)
+            row1_items = [
+                QStandardItem(str(result['row_index'] + 1)),
+                QStandardItem(str(data_packet.get('timestamp'))),
+                QStandardItem(str(result['count'])),
+                QStandardItem(str(data_packet.get('channel'))),
+                QStandardItem(str(data_packet.get('can_id'))),
+                QStandardItem(data_packet.get('type')),
+                QStandardItem(data_packet.get('direction')),
+                QStandardItem(str(data_packet.get('dlc')))
+            ]
+            # for val in int_data:
+            #     row1_items.append(QStandardItem(f"{val:02X}"))
+            for i in range(max_data_cols):
+                text = f"{int_data[i]:02X}" if i < len(int_data) else ""
+                row1_items.append(QStandardItem(text))
 
             self.model.appendRow(row1_items)
 
-            # ---------------------------
-            # ROW 2: BINARY DATA (Optional)
-            # ---------------------------
+            # if show_binary:
+            #     # Add Row 2 items ... (Binary)
+            #     row2_items = [QStandardItem("") for _ in range(8)]
+            #     for val in int_data: row2_items.append(QStandardItem(f"{val:08b}"))
+            #     self.model.appendRow(row2_items)
+            #     for col in range(8): self.table.setSpan(visual_row_idx, col, 2, 1)
             if show_binary:
-                row2_items = []
-                # Metadata placeholders (Empty, because we will span Row 1 over them)
-                for _ in range(8):
-                    row2_items.append(QStandardItem(""))
-
-                # Data Columns (Binary)
-                for val in int_data:
-                    # Binary format (e.g., 00001111)
-                    row2_items.append(QStandardItem(f"{val:08b}"))
-
+                row2_items = [QStandardItem("") for _ in range(8)]
+                for i in range(max_data_cols):
+                    text = f"{int_data[i]:08b}" if i < len(int_data) else ""
+                    row2_items.append(QStandardItem(text))
                 self.model.appendRow(row2_items)
+                for col in range(8): self.table.setSpan(visual_row_idx, col, 2, 1)
+            # Auto-scroll only on last item of the batch
+            # self.table.scrollToBottom()
 
-                # --- SPANNING LOGIC ---
-                # Make Metadata columns (0-7) cover both rows (Visual Row N and N+1)
-                for col in range(8):
-                    self.table.setSpan(visual_row_idx, col, 2, 1)
-
-            self.table.scrollToBottom()
 
         # --- HANDLE UPDATE ROW (UPDATE) ---
+        # elif result['action'] == 'UPDATE':
+        #     # Update Metadata (Time & Count)
+        #     # We only need to update the top row (visual_row_idx) because of the span
+        #     # Metadata Columns: 1:Time, 2:Count, 6:Dir, 7:DLC
+        #     self.model.setItem(visual_row_idx, 1, QStandardItem(str(data_packet.get('timestamp', '0.0'))))
+        #     self.model.setItem(visual_row_idx, 2, QStandardItem(str(result['count'])))
+        #
+        #     # Add this to ensure the Channel column stays correct for that row
+        #     self.model.setItem(visual_row_idx, 3, QStandardItem(str(data_packet.get('channel', '0'))))
+        #
+        #     # Prepare Highlight Brush
+        #     highlight_brush = QBrush(QColor(255, 255, 0, 100))  # Yellow
+        #     normal_brush = QBrush(Qt.NoBrush)
+        #     do_highlight = self.chk_highlight.isChecked()
+        #
+        #     # Update Data Columns
+        #     # We must update both Hex (Row 1) and Binary (Row 2) if visible
+        #     for i, val in enumerate(int_data):
+        #         col_idx = 8 + i
+        #         if col_idx >= self.model.columnCount(): break
+        #
+        #         # 1. Update HEX (Row 1)
+        #         hex_item = QStandardItem(f"{val:02X}")
+        #         if do_highlight and (i in result['changed_indices']):
+        #             hex_item.setBackground(highlight_brush)
+        #         self.model.setItem(visual_row_idx, col_idx, hex_item)
+        #
+        #         # 2. Update BINARY (Row 2)
+        #         if show_binary:
+        #             bin_item = QStandardItem(f"{val:08b}")
+        #             # Also highlight the binary cell if changed
+        #             if do_highlight and (i in result['changed_indices']):
+        #                 bin_item.setBackground(highlight_brush)
+        #             # Note: +1 for the next row
+        #             self.model.setItem(visual_row_idx + 1, col_idx, bin_item)
         elif result['action'] == 'UPDATE':
-            # Update Metadata (Time & Count)
-            # We only need to update the top row (visual_row_idx) because of the span
-            self.model.setItem(visual_row_idx, 1, QStandardItem(str(data_packet.get('timestamp', '0.0'))))
-            self.model.setItem(visual_row_idx, 2, QStandardItem(str(result['count'])))
+            # 1. Update METADATA (Re-use existing items to save RAM/CPU)
+            # Metadata Columns: 1:Time, 2:Count, 6:Dir, 7:DLC
+            self.model.item(visual_row_idx, 1).setText(str(data_packet.get('timestamp')))
+            self.model.item(visual_row_idx, 2).setText(str(result['count']))
+            self.model.item(visual_row_idx, 6).setText(data_packet.get('direction'))
+            self.model.item(visual_row_idx, 7).setText(str(data_packet.get('dlc')))
 
-            # Add this to ensure the Channel column stays correct for that row
-            self.model.setItem(visual_row_idx, 3, QStandardItem(str(data_packet.get('channel', '0'))))
-
-            # Prepare Highlight Brush
-            highlight_brush = QBrush(QColor(255, 255, 0, 100))  # Yellow
-            normal_brush = QBrush(Qt.NoBrush)
+            # 2. Update DATA BYTES
+            highlight_brush = QBrush(QColor(255, 255, 0, 150))  # Yellowish
             do_highlight = self.chk_highlight.isChecked()
 
-            # Update Data Columns
-            # We must update both Hex (Row 1) and Binary (Row 2) if visible
-            for i, val in enumerate(int_data):
+            # We loop through columns 8 onwards
+            # for i, val in enumerate(int_data):
+            #     col_idx = 8 + i
+            #     if col_idx >= self.model.columnCount(): break
+            #
+            #     # Update HEX cell (Row 1)
+            #     item_hex = self.model.item(visual_row_idx, col_idx)
+            #     if item_hex:
+            #         item_hex.setText(f"{val:02X}")
+            #         if do_highlight and (i in result['changed_indices']):
+            #             item_hex.setBackground(highlight_brush)
+            #         else:
+            #             item_hex.setData(None, Qt.BackgroundRole)  # Clear highlight
+            for i in range(max_data_cols):
                 col_idx = 8 + i
-                if col_idx >= self.model.columnCount(): break
+                item_hex = self.model.item(visual_row_idx, col_idx)
+                if not item_hex: continue  # Skip if for some reason col wasn't created
 
-                # 1. Update HEX (Row 1)
-                hex_item = QStandardItem(f"{val:02X}")
-                if do_highlight and (i in result['changed_indices']):
-                    hex_item.setBackground(highlight_brush)
-                self.model.setItem(visual_row_idx, col_idx, hex_item)
+                if i < len(int_data):
+                    val = int_data[i]
+                    item_hex.setText(f"{val:02X}")
 
-                # 2. Update BINARY (Row 2)
-                if show_binary:
-                    bin_item = QStandardItem(f"{val:08b}")
-                    # Also highlight the binary cell if changed
+                    # Highlights
                     if do_highlight and (i in result['changed_indices']):
-                        bin_item.setBackground(highlight_brush)
-                    # Note: +1 for the next row
-                    self.model.setItem(visual_row_idx + 1, col_idx, bin_item)
+                        item_hex.setBackground(highlight_brush)
+                    else:
+                        item_hex.setData(None, Qt.BackgroundRole)
+                else:
+                    item_hex.setText("")  # New DLC is shorter, clear old byte
+                    item_hex.setData(None, Qt.BackgroundRole)
+
+                # Update BINARY cell (Row 2 if exists)
+                if show_binary:
+                    item_bin = self.model.item(visual_row_idx + 1, col_idx)
+                    if item_bin:
+                        item_bin.setText(f"{val:08b}")
 
     def refresh_view_mode(self):
         pass
