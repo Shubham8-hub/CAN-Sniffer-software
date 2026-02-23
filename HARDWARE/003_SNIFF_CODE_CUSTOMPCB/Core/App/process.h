@@ -32,6 +32,9 @@ void CAN_RxTask(void *argument);
 void LedIndicatorTask(void *argument);
 void process_handle_can_tx(void);
 
+void report_task_alive(uint32_t task_bit);
+
+
 extern QueueHandle_t canRxQueue;
 extern QueueHandle_t canTxQueue;
 

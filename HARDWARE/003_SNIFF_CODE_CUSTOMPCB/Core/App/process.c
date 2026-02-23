@@ -43,6 +43,19 @@ void report_task_alive(uint32_t task_bit) {
     task_live_bits |= task_bit;
 }
 
+void check_fdcan_recovery(FDCAN_HandleTypeDef *hfdcan) {
+    // Check if there is an RX FIFO Overflow or Protocol Error
+    if (hfdcan->Instance->IR & (FDCAN_IR_RF0L | FDCAN_IR_PEA)) {
+        // Clear IR flags
+        hfdcan->Instance->IR = (FDCAN_IR_RF0L | FDCAN_IR_PEA);
+        // Optional: Re-start peripheral if totally stuck
+        if (hfdcan->Instance->PSR & FDCAN_PSR_BO) { // Bus Off
+            HAL_FDCAN_Stop(hfdcan);
+            HAL_FDCAN_Start(hfdcan);
+        }
+    }
+}
+
 void process_init(void)
 {
 	  usbRxQueue =	xQueueCreate(32,sizeof(uint8_t));
@@ -81,6 +94,10 @@ void HeartbeatTask(void *argument) {
     for(;;) {
         // We wait 2 seconds. The IWDG is configured for ~4 seconds in your main.c
         vTaskDelay(pdMS_TO_TICKS(1000));
+
+        // --- ADD RECOVERY CHECK ---
+		check_fdcan_recovery(&hfdcan2);
+		check_fdcan_recovery(&hfdcan3);
 
         // CHECK: Are all bits set?
         if ((task_live_bits & ALL_TASKS_ALIVE) == ALL_TASKS_ALIVE) {
@@ -133,10 +150,16 @@ void UsbTxTask(void *argument)
         {
         	uint8_t len = (resp[0] == 0xAA) ? 16 : 14;
             // Wait until USB is ready
-            while (CDC_Transmit_FS(resp, len) == USBD_BUSY)
-            {
-                vTaskDelay(pdMS_TO_TICKS(1));
-            }
+//            while (CDC_Transmit_FS(resp, len) == USBD_BUSY)
+//            {
+//                vTaskDelay(pdMS_TO_TICKS(1));
+//            }
+        	// Try to transmit. If busy, try 5 times then GIVE UP.
+			uint32_t retry = 5;
+			while (CDC_Transmit_FS(resp, len) == USBD_BUSY && retry > 0) {
+				vTaskDelay(1); // Give USB stack a millisecond
+				retry--;
+			}
         }
 
     }
