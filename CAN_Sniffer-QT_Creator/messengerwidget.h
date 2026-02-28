@@ -8,6 +8,7 @@
 #include <QMap>
 #include <QTimer>
 #include "can_protocol.h"
+#include <QPushButton>
 
 namespace Ui {
 class MessengerWidget;
@@ -49,12 +50,14 @@ private:
     QMap<QString, QByteArray> prevDataMap;         // Maps CAN ID -> Previous Payload
 
     // Tracks Periodic Timers based on the row index in tableWidget_2
-    QMap<int, QTimer*> periodicTimers;
-
+    // QMap<int, QTimer*> periodicTimers;
+    QMap<QPushButton*, QTimer*> periodicTimers;
     // Helper functions
     void addMessageToTrace(uint8_t ch, uint8_t dir, uint32_t id, uint8_t dlc, QByteArray data);
     void transmitToHardware(uint8_t ch, uint32_t id, uint8_t dlc, QByteArray data);
     QByteArray readDataFromGrid(int dlc);
+    void on_tableWidget_2_cellClicked(int row, int column); // Edit mode populator
+    void deleteMessageRow(int row);                         // Helper to safely delete
 
 };
 

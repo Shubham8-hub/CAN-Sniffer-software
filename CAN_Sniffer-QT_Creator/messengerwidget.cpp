@@ -23,7 +23,7 @@ MessengerWidget::MessengerWidget(QWidget *parent) :
     ui->tableTrace->horizontalHeader()->setStretchLastSection(true);
 
     // 2. Transmit Table Setup (Added Messages List)
-    ui->tableWidget_2->setColumnCount(8);
+    ui->tableWidget_2->setColumnCount(9);
 
     // 3. Dynamic Data Grid Setup
     ui->tableWidget->setRowCount(1); // Make sure there is 1 row to type data into!
@@ -241,19 +241,72 @@ void MessengerWidget::on_pushButton_2_clicked() // "Send Message"
 
 
 
+// void MessengerWidget::on_pushButton_clicked() // "Add Message"
+// {
+//     // --- VALIDATION POPUP ---
+//     if (!ui->radioButton->isChecked() && !ui->radioButton_2->isChecked()) {
+//         QMessageBox::warning(this, "Selection Required", "Please select either 'Manual' or 'Periodic' before adding a message.");
+//         return; // Stop the function here so it doesn't add an empty row
+//     }
+
+//     int row = ui->tableWidget_2->rowCount();
+//     ui->tableWidget_2->insertRow(row);
+
+//     // --- COLUMN MAPPINGS ---
+//     // If your columns are: Sr no | ID | DLC | Channel | Transmission | Data | Status | Action
+//     const int COL_SRNO   = 0;
+//     const int COL_ID     = 1;
+//     const int COL_DLC    = 2;
+//     const int COL_CH     = 3;
+//     const int COL_TRANS  = 4;
+//     const int COL_DATA   = 5;
+//     const int COL_STATUS = 6;
+//     const int COL_ACTION = 7;
+//     const int COL_DELETE = 8;
+//     // -----------------------
+
+//     QString idText = ui->lineEdit->text();
+//     QString dlcText = ui->lineEdit_2->text();
+//     QString chText = ui->comboBox_2->currentText();
+//     bool isPeriodic = ui->radioButton_2->isChecked();
+//     QString transText = isPeriodic ? QString("Periodic (%1ms)").arg(ui->lineEdit_3->text()) : "Manual";
+
+//     const QByteArray data = readDataFromGrid(dlcText.toInt());
+//     QString dataPreview;
+//     for (char b : data) dataPreview += QString("%1 ").arg((uint8_t)b, 2, 16, QChar('0')).toUpper();
+
+//     // Fill table using the correct mapped indexes
+//     ui->tableWidget_2->setItem(row, COL_SRNO,   new QTableWidgetItem(QString::number(row + 1))); // Auto-increments Sr no
+//     ui->tableWidget_2->setItem(row, COL_ID,     new QTableWidgetItem(idText));
+//     ui->tableWidget_2->setItem(row, COL_DLC,    new QTableWidgetItem(dlcText));
+//     ui->tableWidget_2->setItem(row, COL_CH,     new QTableWidgetItem(chText));
+//     ui->tableWidget_2->setItem(row, COL_TRANS,  new QTableWidgetItem(transText));
+//     ui->tableWidget_2->setItem(row, COL_DATA,   new QTableWidgetItem(dataPreview));
+//     ui->tableWidget_2->setItem(row, COL_STATUS, new QTableWidgetItem("Ready"));
+
+//     // Inject Action Button
+//     QPushButton *btnAction = new QPushButton(isPeriodic ? "Start" : "Send");
+//     btnAction->setStyleSheet("background-color: #28A745; color: white; font-weight: bold; border-radius: 3px;");
+//     ui->tableWidget_2->setCellWidget(row, COL_ACTION, btnAction);
+
+//     // Connect Action Button to handler
+//     connect(btnAction, &QPushButton::clicked, [this, row]() {
+//         handleActionClicked(row);
+//     });
+// }
+
 void MessengerWidget::on_pushButton_clicked() // "Add Message"
 {
     // --- VALIDATION POPUP ---
     if (!ui->radioButton->isChecked() && !ui->radioButton_2->isChecked()) {
         QMessageBox::warning(this, "Selection Required", "Please select either 'Manual' or 'Periodic' before adding a message.");
-        return; // Stop the function here so it doesn't add an empty row
+        return;
     }
 
     int row = ui->tableWidget_2->rowCount();
     ui->tableWidget_2->insertRow(row);
 
     // --- COLUMN MAPPINGS ---
-    // If your columns are: Sr no | ID | DLC | Channel | Transmission | Data | Status | Action
     const int COL_SRNO   = 0;
     const int COL_ID     = 1;
     const int COL_DLC    = 2;
@@ -262,6 +315,7 @@ void MessengerWidget::on_pushButton_clicked() // "Add Message"
     const int COL_DATA   = 5;
     const int COL_STATUS = 6;
     const int COL_ACTION = 7;
+    const int COL_DELETE = 8; // <--- NEW DELETE COLUMN
     // -----------------------
 
     QString idText = ui->lineEdit->text();
@@ -275,7 +329,7 @@ void MessengerWidget::on_pushButton_clicked() // "Add Message"
     for (char b : data) dataPreview += QString("%1 ").arg((uint8_t)b, 2, 16, QChar('0')).toUpper();
 
     // Fill table using the correct mapped indexes
-    ui->tableWidget_2->setItem(row, COL_SRNO,   new QTableWidgetItem(QString::number(row + 1))); // Auto-increments Sr no
+    ui->tableWidget_2->setItem(row, COL_SRNO,   new QTableWidgetItem(QString::number(row + 1)));
     ui->tableWidget_2->setItem(row, COL_ID,     new QTableWidgetItem(idText));
     ui->tableWidget_2->setItem(row, COL_DLC,    new QTableWidgetItem(dlcText));
     ui->tableWidget_2->setItem(row, COL_CH,     new QTableWidgetItem(chText));
@@ -283,17 +337,78 @@ void MessengerWidget::on_pushButton_clicked() // "Add Message"
     ui->tableWidget_2->setItem(row, COL_DATA,   new QTableWidgetItem(dataPreview));
     ui->tableWidget_2->setItem(row, COL_STATUS, new QTableWidgetItem("Ready"));
 
-    // Inject Action Button
+    // Inject Action Button (Send/Start)
     QPushButton *btnAction = new QPushButton(isPeriodic ? "Start" : "Send");
     btnAction->setStyleSheet("background-color: #28A745; color: white; font-weight: bold; border-radius: 3px;");
     ui->tableWidget_2->setCellWidget(row, COL_ACTION, btnAction);
 
-    // Connect Action Button to handler
-    connect(btnAction, &QPushButton::clicked, [this, row]() {
-        handleActionClicked(row);
+    connect(btnAction, &QPushButton::clicked, [this, row, btnAction]() {
+        // Find the current row dynamically in case a row above was deleted!
+        for (int r = 0; r < ui->tableWidget_2->rowCount(); ++r) {
+            if (ui->tableWidget_2->cellWidget(r, 7) == btnAction) {
+                handleActionClicked(r);
+                break;
+            }
+        }
+    });
+
+    // ---> Inject Delete Button <---
+    QPushButton *btnDelete = new QPushButton("Delete");
+    btnDelete->setStyleSheet("background-color: #DC3545; color: white; font-weight: bold; border-radius: 3px;");
+    ui->tableWidget_2->setCellWidget(row, COL_DELETE, btnDelete);
+
+    connect(btnDelete, &QPushButton::clicked, [this, btnDelete]() {
+        // Find the current row of THIS specific delete button
+        for (int r = 0; r < ui->tableWidget_2->rowCount(); ++r) {
+            if (ui->tableWidget_2->cellWidget(r, 8) == btnDelete) {
+                deleteMessageRow(r);
+                break;
+            }
+        }
     });
 }
 
+// void MessengerWidget::handleActionClicked(int row)
+// {
+//     const int COL_TRANS = 4;
+//     const int COL_ACTION = 7;
+//     const int COL_STATUS = 6;
+
+//     QPushButton *btn = qobject_cast<QPushButton*>(ui->tableWidget_2->cellWidget(row, COL_ACTION));
+//     if (!btn) return;
+
+//     QString transMode = ui->tableWidget_2->item(row, COL_TRANS)->text();
+
+//     if (transMode == "Manual") {
+//         sendPeriodicMessage(row);
+//         ui->tableWidget_2->item(row, COL_STATUS)->setText("Sent");
+//     }
+//     else { // Periodic
+//         if (btn->text() == "Start") {
+//             btn->setText("Stop");
+//             btn->setStyleSheet("background-color: #AA0000; color: white;");
+//             ui->tableWidget_2->item(row, COL_STATUS)->setText("Transmitting...");
+
+//             int ms = transMode.section('(', 1, 1).remove("ms)").toInt();
+
+//             QTimer *timer = new QTimer(this);
+//             connect(timer, &QTimer::timeout, [this, row]() { sendPeriodicMessage(row); });
+//             timer->start(ms);
+//             periodicTimers[row] = timer;
+//         }
+//         else {
+//             btn->setText("Start");
+//             btn->setStyleSheet("");
+//             ui->tableWidget_2->item(row, COL_STATUS)->setText("Stopped");
+
+//             if (periodicTimers.contains(row)) {
+//                 periodicTimers[row]->stop();
+//                 periodicTimers[row]->deleteLater();
+//                 periodicTimers.remove(row);
+//             }
+//         }
+//     }
+// }
 
 void MessengerWidget::handleActionClicked(int row)
 {
@@ -313,25 +428,33 @@ void MessengerWidget::handleActionClicked(int row)
     else { // Periodic
         if (btn->text() == "Start") {
             btn->setText("Stop");
-            btn->setStyleSheet("background-color: #AA0000; color: white;");
+            btn->setStyleSheet("background-color: #AA0000; color: white; border-radius: 3px; font-weight: bold;");
             ui->tableWidget_2->item(row, COL_STATUS)->setText("Transmitting...");
 
             int ms = transMode.section('(', 1, 1).remove("ms)").toInt();
 
             QTimer *timer = new QTimer(this);
-            connect(timer, &QTimer::timeout, [this, row]() { sendPeriodicMessage(row); });
+            connect(timer, &QTimer::timeout, [this, btn]() {
+                // Dynamically find where this button is right now
+                for (int r = 0; r < ui->tableWidget_2->rowCount(); ++r) {
+                    if (ui->tableWidget_2->cellWidget(r, 7) == btn) {
+                        sendPeriodicMessage(r);
+                        return;
+                    }
+                }
+            });
             timer->start(ms);
-            periodicTimers[row] = timer;
+            periodicTimers[btn] = timer; // Store safely against the button
         }
         else {
             btn->setText("Start");
-            btn->setStyleSheet("");
+            btn->setStyleSheet("background-color: #28A745; color: white; border-radius: 3px; font-weight: bold;");
             ui->tableWidget_2->item(row, COL_STATUS)->setText("Stopped");
 
-            if (periodicTimers.contains(row)) {
-                periodicTimers[row]->stop();
-                periodicTimers[row]->deleteLater();
-                periodicTimers.remove(row);
+            if (periodicTimers.contains(btn)) {
+                periodicTimers[btn]->stop();
+                periodicTimers[btn]->deleteLater();
+                periodicTimers.remove(btn);
             }
         }
     }
@@ -426,4 +549,74 @@ void MessengerWidget::applyTheme(bool isDark)
         ui->tableWidget->setStyleSheet("");
         ui->tableWidget_2->setStyleSheet("");
     }
+}
+
+// --- SAFE DELETE HANDLER ---
+void MessengerWidget::deleteMessageRow(int row)
+{
+    // 1. Grab the Action button to see if a timer is running
+    QPushButton *btnAction = qobject_cast<QPushButton*>(ui->tableWidget_2->cellWidget(row, 7));
+
+    // 2. Stop and destroy the timer if it exists
+    if (btnAction && periodicTimers.contains(btnAction)) {
+        periodicTimers[btnAction]->stop();
+        periodicTimers[btnAction]->deleteLater();
+        periodicTimers.remove(btnAction);
+    }
+
+    // 3. Delete the row
+    ui->tableWidget_2->removeRow(row);
+
+    // 4. Re-calculate the "Sr no" column so the numbers stay sequential (1, 2, 3...)
+    for (int r = 0; r < ui->tableWidget_2->rowCount(); ++r) {
+        ui->tableWidget_2->item(r, 0)->setText(QString::number(r + 1));
+    }
+}
+
+// --- POPULATE CONFIGURATION ON CLICK (EDIT MODE) ---
+void MessengerWidget::on_tableWidget_2_cellClicked(int row, int column)
+{
+    // Ignore clicks on empty areas
+    if (row < 0 || row >= ui->tableWidget_2->rowCount()) return;
+
+    // 1. Read Data from the clicked row
+    QString idStr = ui->tableWidget_2->item(row, 1)->text();
+    QString dlcStr = ui->tableWidget_2->item(row, 2)->text();
+    QString chStr = ui->tableWidget_2->item(row, 3)->text();
+    QString transStr = ui->tableWidget_2->item(row, 4)->text();
+    QString dataStr = ui->tableWidget_2->item(row, 5)->text();
+
+    // 2. Push to Top Configuration UI
+    ui->lineEdit->setText(idStr);   // Set ID
+    ui->lineEdit_2->setText(dlcStr); // Set DLC (this automatically redraws the data grid!)
+
+    // Set Channel Dropdown
+    int chIndex = ui->comboBox_2->findText(chStr);
+    if (chIndex != -1) ui->comboBox_2->setCurrentIndex(chIndex);
+
+    // Set Radio Buttons
+    if (transStr == "Manual") {
+        ui->radioButton->setChecked(true);
+    } else {
+        ui->radioButton_2->setChecked(true);
+        // Extract the milliseconds from the "Periodic (20ms)" string
+        QString msStr = transStr.section('(', 1, 1).remove("ms)");
+        ui->lineEdit_3->setText(msStr);
+    }
+
+    // 3. Populate Data Grid Bytes
+    QStringList bytes = dataStr.simplified().split(' ');
+
+    // Block signals so the auto-formatter doesn't go crazy while we inject data
+    ui->tableWidget->blockSignals(true);
+    for (int i = 0; i < bytes.size() && i < ui->tableWidget->columnCount(); ++i) {
+        QTableWidgetItem *item = ui->tableWidget->item(0, i);
+        if (!item) {
+            item = new QTableWidgetItem();
+            ui->tableWidget->setItem(0, i, item);
+        }
+        item->setText(bytes[i]);
+        item->setTextAlignment(Qt::AlignCenter);
+    }
+    ui->tableWidget->blockSignals(false);
 }
