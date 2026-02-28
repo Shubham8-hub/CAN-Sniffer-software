@@ -17,7 +17,7 @@
    <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
@@ -222,6 +222,7 @@
        <string>CAN Trace</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout">
+       
        <item row="0" column="0">
         <widget class="QWidget" name="widget" native="true">
          <property name="minimumSize">
@@ -279,7 +280,37 @@
          </layout>
         </widget>
        </item>
+
        <item row="1" column="0">
+        <layout class="QHBoxLayout" name="horizontalLayout_log">
+         <item>
+          <widget class="QPushButton" name="btnStartStopLog">
+           <property name="text">
+            <string>Start Logging</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="txtLogPath">
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+           <property name="placeholderText">
+            <string>Select a folder to save the .csv log...</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btnBrowseLog">
+           <property name="text">
+            <string>Browse</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+
+       <item row="2" column="0">
         <widget class="QTableWidget" name="tableTrace">
          <property name="editTriggers">
           <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
@@ -329,6 +360,7 @@
          </column>
         </widget>
        </item>
+
       </layout>
      </widget>
     </widget>

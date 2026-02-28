@@ -9,6 +9,9 @@
 #include <QTimer>
 #include "can_protocol.h"
 #include <QPushButton>
+#include <QFile>
+#include <QTextStream>
+#include <QFileDialog>
 
 namespace Ui {
 class MessengerWidget;
@@ -27,6 +30,7 @@ public:
 public slots:
     void handleIncomingCanFrame(QByteArray packet);
     void applyTheme(bool isDark);
+    void forceStopLogging();
 
 private slots:
     void on_btnStartStopTrace_clicked();
@@ -40,9 +44,17 @@ private slots:
     void handleActionClicked(int row);                      // Handles Start/Stop in the list
     void sendPeriodicMessage(int row);                      // Triggered by timers
     void on_tableWidget_cellChanged(int row, int column);
+
+    void on_btnBrowseLog_clicked();
+    void on_btnStartStopLog_clicked();
+
 private:
     Ui::MessengerWidget *ui;
     bool isTracing; //keep track of the start/stop state
+
+    bool isLogging;
+    QFile *logFile;
+    QTextStream *logStream;
 
     // Tracking for the Trace table
     QMap<QString, int>  traceRowMap;               // Maps CAN ID -> Table Row Index
@@ -50,8 +62,8 @@ private:
     QMap<QString, QByteArray> prevDataMap;         // Maps CAN ID -> Previous Payload
 
     // Tracks Periodic Timers based on the row index in tableWidget_2
-    // QMap<int, QTimer*> periodicTimers;
     QMap<QPushButton*, QTimer*> periodicTimers;
+
     // Helper functions
     void addMessageToTrace(uint8_t ch, uint8_t dir, uint32_t id, uint8_t dlc, QByteArray data);
     void transmitToHardware(uint8_t ch, uint32_t id, uint8_t dlc, QByteArray data);

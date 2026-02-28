@@ -93,6 +93,13 @@ MainWindow::MainWindow(QWidget *parent)
     // Share the serial port to messenger
     pageMessenger->serialPort = pageConnect->serialPort;
 
+    connect(pageConnect->serialPort, &QSerialPort::errorOccurred, this, [=](QSerialPort::SerialPortError error) {
+        // If the hardware is physically unplugged or the port vanishes
+        if (error == QSerialPort::ResourceError || error == QSerialPort::DeviceNotFoundError) {
+            pageMessenger->forceStopLogging();
+        }
+    });
+
     // Connect the data routing signals
     connect(pageConnect, &ConnectWidget::deviceConnected, pageSettings, &SettingsWidget::buildUiForDevice);
     connect(pageConnect, &ConnectWidget::baudReadSignal, pageSettings, &SettingsWidget::handleBaudRead);
